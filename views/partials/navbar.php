@@ -1,58 +1,67 @@
 <?php
-$navBase = defined('BLOG_BASE_PATH') ? rtrim(BLOG_BASE_PATH, '/') . '/' : '';
-$homeUrl = $navBase . 'index.php';
-$aboutUrl = $navBase . 'about.php';
+$path = blog_current_path();
+$isHome = $path === '/' || $path === '';
+$isAbout = $path === '/about';
+$homeUrl = blog_url();
+$aboutUrl = blog_url('about');
+
+$linkBase = 'inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50';
+$linkIdle = 'text-stone-600 hover:bg-stone-100/80 hover:text-stone-900';
+$linkActive = 'bg-stone-200/70 text-stone-900';
 ?>
 
-<header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-    <nav class="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Primary">
-        <a
-                href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
-                class="text-sm font-semibold tracking-tight text-slate-900 transition hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm"
-        >
-            Mini Blog
+<header class="sticky top-0 z-50 border-b border-stone-200/90 bg-stone-50/85 backdrop-blur-md">
+    <div class="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+        <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
+           class="group flex items-center gap-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
+            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-900 text-sm font-semibold tracking-tight text-amber-50 shadow-sm ring-1 ring-stone-900/10 transition group-hover:bg-stone-800"
+                  aria-hidden="true">M</span>
+            <span class="flex flex-col leading-tight">
+                <span class="text-sm font-semibold tracking-tight text-stone-900">Mini Blog</span>
+                <span class="text-xs font-medium text-stone-500">Notes &amp; long-form</span>
+            </span>
         </a>
 
-        <ul class="hidden list-none items-center gap-8 md:flex">
-            <li>
-                <a
-                        href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        class="text-sm font-medium text-slate-600 transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm"
-                >
-                    Home
-                </a>
-                <a
-                        href="<?= htmlspecialchars($aboutUrl, ENT_QUOTES, 'UTF-8') ?>"
-                        class="text-sm font-medium text-slate-600 transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm"
-                >
-                    About Us</a>
-            </li>
-        </ul>
+        <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
+            <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
+               class="<?= $linkBase ?> <?= $isHome ? $linkActive : $linkIdle ?>"
+                <?= $isHome ? 'aria-current="page"' : '' ?>>
+                Home
+            </a>
+            <a href="<?= htmlspecialchars($aboutUrl, ENT_QUOTES, 'UTF-8') ?>"
+               class="<?= $linkBase ?> <?= $isAbout ? $linkActive : $linkIdle ?>"
+                <?= $isAbout ? 'aria-current="page"' : '' ?>>
+                About
+            </a>
+        </nav>
 
         <div class="relative md:hidden">
             <details class="group">
                 <summary
-                        class="flex cursor-pointer list-none items-center justify-center rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white [&::-webkit-details-marker]:hidden"
-                        aria-label="Open menu"
-                >
+                        class="flex cursor-pointer list-none items-center justify-center rounded-lg border border-stone-200 bg-white p-2.5 text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 [&::-webkit-details-marker]:hidden"
+                        aria-label="Open menu">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" aria-hidden="true">
                         <path d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </summary>
                 <div
-                        class="absolute right-0 top-full mt-2 min-w-[12rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/5"
-                        role="menu"
-                >
-                    <a
-                            href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
-                            class="block px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:bg-slate-50"
-                            role="menuitem"
-                    >
+                        class="absolute right-0 top-full z-50 mt-2 min-w-[12.5rem] overflow-hidden rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-900/10 ring-1 ring-stone-900/5"
+                        role="menu">
+                    <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
+                       class="block px-4 py-2.5 text-sm font-medium <?= $isHome ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                       role="menuitem"
+                        <?= $isHome ? 'aria-current="page"' : '' ?>>
                         Home
+                    </a>
+                    <a href="<?= htmlspecialchars($aboutUrl, ENT_QUOTES, 'UTF-8') ?>"
+                       class="block px-4 py-2.5 text-sm font-medium <?= $isAbout ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                       role="menuitem"
+                        <?= $isAbout ? 'aria-current="page"' : '' ?>>
+                        About
                     </a>
                 </div>
             </details>
         </div>
-    </nav>
+    </div>
 </header>

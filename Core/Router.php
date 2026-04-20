@@ -6,6 +6,9 @@ class Router
 {
   protected $routes = [];
 
+  /** @var array<string, string> */
+  public static array $routeParams = [];
+
   public function get($uri, $controller)
   {
     return $this->add('GET', $uri, $controller);
@@ -45,13 +48,58 @@ class Router
 
   public function route($uri, $method)
   {
+    self::$routeParams = [];
+    $uri = $this->normalizePath($uri);
+
     foreach ($this->routes as $route) {
-      if ($route['uri'] === $uri && $route['method'] === strtoupper($method)) {
+      if ($route['method'] !== strtoupper($method)) {
+        continue;
+      }
+      $params = $this->matchRoute($route['uri'], $uri);
+      if ($params !== null) {
+        self::$routeParams = $params;
         return require_once base_path('Http/controllers/' . $route['controller']);
       }
     }
 
     $this->abort();
+  }
+
+  protected function normalizePath(string $uri): string
+  {
+    if ($uri === '' || $uri === '/') {
+      return '/';
+    }
+    return rtrim($uri, '/') ?: '/';
+  }
+
+  /**
+   * @return array<string, string>|null
+   */
+  protected function matchRoute(string $pattern, string $uri): ?array
+  {
+    if (!str_contains($pattern, ':')) {
+      return $pattern === $uri ? [] : null;
+    }
+
+    $names = [];
+    $regex = preg_replace_callback(
+      '/:([a-zA-Z_][a-zA-Z0-9_]*)/',
+      function (array $m) use (&$names) {
+        $names[] = $m[1];
+        return '([^/]+)';
+      },
+      $pattern
+    );
+    $regex = '#^' . $regex . '$#';
+    if (!preg_match($regex, $uri, $matches)) {
+      return null;
+    }
+    array_shift($matches);
+    if ($names === []) {
+      return [];
+    }
+    return array_combine($names, $matches);
   }
 
   protected function abort($code = 404)
