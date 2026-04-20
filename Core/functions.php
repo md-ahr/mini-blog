@@ -62,6 +62,59 @@ function blog_post_url(string $slug): string
 }
 
 /**
+ * Normalize a post row from MySQL (expects `published_at` and optional `author` from JOIN).
+ *
+ * @param array<string, mixed> $row
+ * @return array<string, mixed>
+ */
+function blog_post_from_db_row(array $row): array
+{
+  $published = (string) ($row['published_at'] ?? '');
+  $dt = date_create($published ?: 'now') ?: new DateTimeImmutable();
+  $out = [
+    'slug' => $row['slug'],
+    'title' => $row['title'],
+    'excerpt' => $row['excerpt'],
+    'tag' => (string) ($row['tag'] ?? ''),
+    'author' => (string) ($row['author'] ?? ''),
+    'dateIso' => $published,
+    'dateDisplay' => $dt->format('M j, Y'),
+    'readingMinutes' => (int) ($row['reading_minutes'] ?? 0),
+    'content' => [],
+  ];
+  if (array_key_exists('content', $row) && $row['content'] !== null && $row['content'] !== '') {
+    $raw = $row['content'];
+    $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
+    $out['content'] = is_array($decoded) ? $decoded : [];
+  }
+  return $out;
+}
+
+/**
+ * Build /blogs URL with optional tag, search (q), and page query string.
+ *
+ * @param array{tag?: string, q?: string, page?: int} $query
+ */
+function blogs_index_url(array $query = []): string
+{
+  $params = [];
+  $tag = trim((string) ($query['tag'] ?? ''));
+  if ($tag !== '') {
+    $params['tag'] = $tag;
+  }
+  $q = trim((string) ($query['q'] ?? ''));
+  if ($q !== '') {
+    $params['q'] = $q;
+  }
+  $page = isset($query['page']) ? (int) $query['page'] : 1;
+  if ($page > 1) {
+    $params['page'] = $page;
+  }
+  $base = blog_url('blogs');
+  return $params === [] ? $base : $base . '?' . http_build_query($params);
+}
+
+/**
  * @return array<string, array<string, mixed>>
  */
 function blog_posts(): array

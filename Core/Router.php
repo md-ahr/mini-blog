@@ -4,10 +4,9 @@ namespace Core;
 
 class Router
 {
-  protected $routes = [];
-
   /** @var array<string, string> */
   public static array $routeParams = [];
+  protected $routes = [];
 
   public function get($uri, $controller)
   {

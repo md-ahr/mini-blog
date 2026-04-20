@@ -1,6 +1,7 @@
 <?php
 $year = (int)date('Y');
 $homeUrl = blog_url();
+$blogUrl = blog_url('blogs');
 $aboutUrl = blog_url('about');
 ?>
 
@@ -28,6 +29,12 @@ $aboutUrl = blog_url('about');
                         <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
                            class="font-medium text-stone-700 transition hover:text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
                             Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($blogUrl, ENT_QUOTES, 'UTF-8') ?>"
+                           class="font-medium text-stone-700 transition hover:text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
+                            Blog
                         </a>
                     </li>
                     <li>

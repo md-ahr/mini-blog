@@ -6,7 +6,7 @@
  *
  * @var array<string, array<string, mixed>>
  */
-$defaultAuthor = 'Alex Rivera';
+$defaultAuthor = 'Abdul Halim';
 
 return [
   'shipping-a-smaller-first-version' => [

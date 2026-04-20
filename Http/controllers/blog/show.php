@@ -1,13 +1,28 @@
 <?php
 
-$slug = rawurldecode((string) route_param('slug', ''));
-$posts = blog_posts();
+use Core\App;
+use Core\Database;
 
-if ($slug === '' || !isset($posts[$slug])) {
-  abort(404);
+$slug = rawurldecode((string) route_param('slug', ''));
+if ($slug === '') {
+  abort();
 }
 
-$post = $posts[$slug];
+$db = App::resolve(Database::class);
+$row = $db->query(
+  'SELECT p.slug, p.title, p.excerpt, p.tag, p.reading_minutes, p.published_at, p.content, u.name AS author
+   FROM posts p
+   INNER JOIN users u ON u.id = p.user_id
+   WHERE p.slug = ?
+   LIMIT 1',
+  [$slug]
+)->find();
+
+if (!$row) {
+  abort();
+}
+
+$post = blog_post_from_db_row($row);
 
 view('blog/show.view.php', [
   'post' => $post,

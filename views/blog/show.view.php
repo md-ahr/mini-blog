@@ -96,9 +96,10 @@ $absolutePostUrl = $scheme . '://' . $host . $path;
             </div>
 
             <p class="mt-10">
-                <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
-                   class="inline-flex items-center gap-2 text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-4 transition hover:decoration-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 rounded-sm">
-                    ← All posts
+                <a href="<?= htmlspecialchars(blog_url('blogs'), ENT_QUOTES, 'UTF-8') ?>"
+                   class="inline-flex items-center gap-2 text-sm font-semibold text-stone-900 underline decoration-stone-300 underline-offset-4 transition hover:decoration-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 rounded-sm"
+                   onclick="if (window.history.length > 1) { event.preventDefault(); window.history.back(); }">
+                    ← Back
                 </a>
             </p>
         </footer>

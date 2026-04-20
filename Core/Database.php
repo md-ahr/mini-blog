@@ -16,7 +16,7 @@ class Database
     $dsnParts = [
       'host' => $config['host'],
       'port' => $config['port'],
-      'dbname' => $config['database'],
+      'dbname' => $config['dbname'],
       'charset' => $config['charset']
     ];
 
@@ -24,7 +24,7 @@ class Database
     $this->connection = new PDO($dsn, $username, $password, [PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
   }
 
-  public function query($query, $params = [])
+  public function query($query, $params = []): Database
   {
     $this->statement = $this->connection->prepare($query);
     $this->statement->execute($params);
