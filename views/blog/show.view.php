@@ -61,7 +61,9 @@ $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' :
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $absolutePostUrl = $scheme . '://' . $host . $path;
 
-$tagLabel = trim((string) ($post['tag'] ?? ''));
+$postTags = isset($post['tags']) && is_array($post['tags']) ? $post['tags'] : [];
+$categoryName = trim((string) ($post['category'] ?? ''));
+$categorySlug = trim((string) ($post['category_slug'] ?? ''));
 $contentBlocks = isset($post['content']) && is_array($post['content']) ? $post['content'] : [];
 $hasBody = $contentBlocks !== [];
 $readingMinutes = (int) ($post['readingMinutes'] ?? 0);
@@ -85,11 +87,32 @@ $featuredUrl = isset($post['featuredImageUrl']) ? trim((string) $post['featuredI
     <article class="mx-auto max-w-2xl">
         <header class="border-b border-stone-200/90 pb-10">
             <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-stone-500">
-                <?php if ($tagLabel !== '') : ?>
-                    <span class="rounded-full bg-amber-100/90 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-900/90 ring-1 ring-amber-200/80">
-                        <?= htmlspecialchars($tagLabel, ENT_QUOTES, 'UTF-8') ?>
-                    </span>
-                <?php else : ?>
+                <?php if ($categoryName !== '' && $categorySlug !== '') : ?>
+                    <a href="<?= htmlspecialchars(blogs_index_url(['category' => $categorySlug, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                       class="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-800 ring-1 ring-stone-200/80 transition hover:bg-stone-200/90">
+                        <?= htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8') ?>
+                    </a>
+                <?php endif; ?>
+                <?php foreach ($postTags as $tg) : ?>
+                    <?php
+                    if (!is_array($tg)) {
+                      continue;
+                    }
+                    $ts = trim((string) ($tg['slug'] ?? ''));
+                    $tn = trim((string) ($tg['name'] ?? ''));
+                    if ($ts === '') {
+                      continue;
+                    }
+                    $tc = blog_sanitize_color($tg['color'] ?? null, '#78716c');
+                    ?>
+                    <a href="<?= htmlspecialchars(blogs_index_url(['tag' => $ts, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                       class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-stone-900 ring-1 ring-stone-200/80 transition hover:opacity-90"
+                       style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>22;">
+                        <span class="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-stone-900/10" style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span>
+                        <?= htmlspecialchars($tn !== '' ? $tn : $ts, ENT_QUOTES, 'UTF-8') ?>
+                    </a>
+                <?php endforeach; ?>
+                <?php if ($categoryName === '' && $postTags === []) : ?>
                     <span class="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-stone-600 ring-1 ring-stone-200/80">
                         Article
                     </span>

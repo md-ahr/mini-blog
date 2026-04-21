@@ -71,11 +71,28 @@ function blog_post_from_db_row(array $row): array
 {
   $published = (string) ($row['published_at'] ?? '');
   $dt = date_create($published ?: 'now') ?: new DateTimeImmutable();
+  $tags = [];
+  if (isset($row['_tags']) && is_array($row['_tags'])) {
+    foreach ($row['_tags'] as $t) {
+      if (!is_array($t)) {
+        continue;
+      }
+      $tags[] = [
+        'name' => (string) ($t['name'] ?? ''),
+        'slug' => (string) ($t['slug'] ?? ''),
+        'color' => blog_sanitize_color($t['color'] ?? null),
+      ];
+    }
+  }
+  $firstTag = $tags[0]['name'] ?? '';
   $out = [
     'slug' => $row['slug'],
     'title' => $row['title'],
     'excerpt' => $row['excerpt'],
-    'tag' => (string) ($row['tag'] ?? ''),
+    'tag' => $firstTag,
+    'tags' => $tags,
+    'category' => isset($row['category_name']) ? trim((string) $row['category_name']) : '',
+    'category_slug' => isset($row['category_slug']) ? trim((string) $row['category_slug']) : '',
     'author' => (string) ($row['author'] ?? ''),
     'dateIso' => $published,
     'dateDisplay' => $dt->format('M j, Y'),
@@ -94,6 +111,138 @@ function blog_post_from_db_row(array $row): array
 }
 
 /**
+ * URL-safe slug from a title or name (max 191 chars).
+ */
+function blog_slugify(string $text): string
+{
+  $text = trim($text);
+  if ($text === '') {
+    return '';
+  }
+  $lower = mb_strtolower($text, 'UTF-8');
+  $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $lower);
+  if ($ascii !== false) {
+    $lower = $ascii;
+  }
+  $lower = strtolower($lower);
+  $slug = preg_replace('/[^a-z0-9]+/', '-', $lower) ?? '';
+  $slug = trim((string) $slug, '-');
+  if ($slug === '') {
+    return '';
+  }
+  return mb_substr($slug, 0, 191);
+}
+
+/**
+ * Normalize #RRGGBB for categories/tags.
+ */
+function blog_sanitize_color(?string $raw, string $default = '#78716c'): string
+{
+  $s = trim((string) $raw);
+  if (preg_match('/^#[0-9a-fA-F]{6}$/', $s)) {
+    return strtolower($s);
+  }
+  return $default;
+}
+
+/**
+ * @param 'tags'|'categories' $table
+ */
+function blog_unique_slug(\Core\Database $db, string $table, string $baseSlug, ?int $excludeId = null): string
+{
+  if ($table !== 'tags' && $table !== 'categories') {
+    throw new InvalidArgumentException('Invalid table for slug.');
+  }
+  $slug = blog_slugify($baseSlug);
+  if ($slug === '') {
+    $slug = 'item';
+  }
+  $candidate = $slug;
+  $n = 2;
+  while (true) {
+    if ($excludeId !== null) {
+      $found = $db->query(
+        "SELECT `id` FROM `$table` WHERE `slug` = ? AND `id` != ? LIMIT 1",
+        [$candidate, $excludeId]
+      )->find();
+    } else {
+      $found = $db->query(
+        "SELECT `id` FROM `$table` WHERE `slug` = ? LIMIT 1",
+        [$candidate]
+      )->find();
+    }
+    if (!$found) {
+      return $candidate;
+    }
+    $suffix = '-' . $n;
+    $candidate = mb_substr($slug, 0, 191 - mb_strlen($suffix)) . $suffix;
+    $n++;
+  }
+}
+
+/**
+ * @return array<int, list<array{name: string, slug: string, color: string}>>
+ */
+function blog_tags_by_post_ids(\Core\Database $db, array $postIds): array
+{
+  $postIds = array_values(array_unique(array_filter(array_map(static fn ($v): int => (int) $v, $postIds))));
+  if ($postIds === []) {
+    return [];
+  }
+  $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+  $rows = $db->query(
+    "SELECT `pt`.`post_id`, `t`.`name`, `t`.`slug`, `t`.`color`
+     FROM `post_tag` `pt`
+     INNER JOIN `tags` `t` ON `t`.`id` = `pt`.`tag_id`
+     WHERE `pt`.`post_id` IN ($placeholders)
+     ORDER BY `t`.`name` ASC",
+    $postIds
+  )->get();
+  $map = [];
+  foreach ($rows as $r) {
+    $pid = (int) ($r['post_id'] ?? 0);
+    if ($pid < 1) {
+      continue;
+    }
+    if (!isset($map[$pid])) {
+      $map[$pid] = [];
+    }
+    $map[$pid][] = [
+      'name' => (string) ($r['name'] ?? ''),
+      'slug' => (string) ($r['slug'] ?? ''),
+      'color' => blog_sanitize_color($r['color'] ?? null),
+    ];
+  }
+  return $map;
+}
+
+/**
+ * @param list<array<string, mixed>> $rows post rows including `id`
+ * @return list<array<string, mixed>>
+ */
+function blog_posts_with_tags(\Core\Database $db, array $rows): array
+{
+  if ($rows === []) {
+    return [];
+  }
+  $ids = [];
+  foreach ($rows as $r) {
+    if (isset($r['id'])) {
+      $ids[] = (int) $r['id'];
+    }
+  }
+  $tagMap = blog_tags_by_post_ids($db, $ids);
+  $out = [];
+  foreach ($rows as $r) {
+    $id = isset($r['id']) ? (int) $r['id'] : 0;
+    $r['_tags'] = $tagMap[$id] ?? [];
+    unset($r['tag']);
+    $out[] = $r;
+  }
+  return $out;
+}
+
+/**
  * Build /blogs URL with optional tag, search (q), and page query string.
  *
  * @param array{tag?: string, q?: string, page?: int} $query
@@ -104,6 +253,10 @@ function blogs_index_url(array $query = []): string
   $tag = trim((string) ($query['tag'] ?? ''));
   if ($tag !== '') {
     $params['tag'] = $tag;
+  }
+  $category = trim((string) ($query['category'] ?? ''));
+  if ($category !== '') {
+    $params['category'] = $category;
   }
   $q = trim((string) ($query['q'] ?? ''));
   if ($q !== '') {

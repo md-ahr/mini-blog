@@ -203,10 +203,14 @@
             }
 
             if (id === 'modal-tag-edit') {
-                setVal(modal, '[name="tag_name"]', trigger.getAttribute('data-tag-name'));
-                setVal(modal, '[name="tag_slug"]', trigger.getAttribute('data-tag-slug'));
-                setVal(modal, '[name="tag_posts"]', trigger.getAttribute('data-tag-posts'));
-                setVal(modal, '[name="tag_color"]', trigger.getAttribute('data-tag-color'));
+                setVal(modal, '[name="id"]', trigger.getAttribute('data-tag-id'));
+                setVal(modal, '[name="name"]', trigger.getAttribute('data-tag-name'));
+                setVal(modal, '[name="slug"]', trigger.getAttribute('data-tag-slug'));
+                setVal(modal, '[name="color"]', trigger.getAttribute('data-tag-color'));
+                var tagPostsRo = modal.querySelector('#tag-edit-posts-readonly');
+                if (tagPostsRo) {
+                    tagPostsRo.textContent = trigger.getAttribute('data-tag-posts') || '0';
+                }
             }
 
             if (id === 'modal-tag-view') {
@@ -219,15 +223,35 @@
             }
 
             if (id === 'modal-category-edit') {
-                setVal(modal, '[name="category_name"]', trigger.getAttribute('data-cat-name'));
-                setVal(modal, '[name="category_slug"]', trigger.getAttribute('data-cat-slug'));
-                setVal(modal, '[name="category_posts"]', trigger.getAttribute('data-cat-posts'));
-                setVal(modal, '[name="category_description"]', trigger.getAttribute('data-cat-description'));
-                setVal(modal, '[name="category_color"]', trigger.getAttribute('data-cat-color'));
+                var catId = trigger.getAttribute('data-cat-id');
+                setVal(modal, '[name="id"]', catId);
+                setVal(modal, '[name="name"]', trigger.getAttribute('data-cat-name'));
+                setVal(modal, '[name="slug"]', trigger.getAttribute('data-cat-slug'));
+                setVal(modal, '[name="description"]', trigger.getAttribute('data-cat-description'));
+                setVal(modal, '[name="color"]', trigger.getAttribute('data-cat-color'));
+                setVal(modal, '[name="sort_order"]', trigger.getAttribute('data-cat-sort'));
+                var catPar = modal.querySelector('#cat-edit-parent');
+                if (catPar) {
+                    Array.prototype.forEach.call(catPar.options, function (o) {
+                        o.disabled = false;
+                    });
+                    setVal(modal, '[name="parent_id"]', trigger.getAttribute('data-cat-parent-id'));
+                    Array.prototype.forEach.call(catPar.options, function (o) {
+                        if (catId && o.value === String(catId)) {
+                            o.disabled = true;
+                        }
+                    });
+                }
+                var catPostsRo = modal.querySelector('#cat-edit-posts-readonly');
+                if (catPostsRo) {
+                    catPostsRo.textContent = trigger.getAttribute('data-cat-posts') || '0';
+                }
             }
 
             if (id === 'modal-category-view') {
                 setText(modal, '[data-view="cat-name"]', trigger.getAttribute('data-cat-name'));
+                var cpar = trigger.getAttribute('data-cat-parent');
+                setText(modal, '[data-view="cat-parent"]', cpar && cpar.trim() !== '' ? cpar : 'Top level');
                 setText(modal, '[data-view="cat-slug"]', trigger.getAttribute('data-cat-slug'));
                 setText(modal, '[data-view="cat-posts"]', trigger.getAttribute('data-cat-posts'));
                 setText(modal, '[data-view="cat-description"]', trigger.getAttribute('data-cat-description'));
@@ -305,9 +329,17 @@
             if (e.target && e.target.id === 'dashboard-confirm-action') {
                 e.preventDefault();
                 var confirmModal = document.getElementById('dashboard-confirm-modal');
+                var submitFormId = lastConfirmTrigger ? lastConfirmTrigger.getAttribute('data-confirm-submit-form') : null;
                 var redirect = lastConfirmTrigger ? lastConfirmTrigger.getAttribute('data-confirm-redirect') : null;
                 closeModal(confirmModal);
                 lastConfirmTrigger = null;
+                if (submitFormId) {
+                    var f = document.getElementById(submitFormId);
+                    if (f) {
+                        f.submit();
+                    }
+                    return;
+                }
                 if (redirect) {
                     window.location.href = redirect;
                 }
@@ -326,6 +358,14 @@
                     populateConfirm(openBtn);
                 } else {
                     prefillModal(openBtn, id);
+                }
+                if (id === 'modal-category-add') {
+                    var addPar = document.getElementById('cat-add-parent');
+                    if (addPar) {
+                        Array.prototype.forEach.call(addPar.options, function (o) {
+                            o.disabled = false;
+                        });
+                    }
                 }
                 var modal = document.getElementById(id);
                 if (!modal) {

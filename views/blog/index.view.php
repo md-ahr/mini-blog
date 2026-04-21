@@ -3,8 +3,10 @@
  * Blog archive: filters, search, pagination.
  *
  * @var array<int, array<string, mixed>> $posts
- * @var array<int, string> $allTags
- * @var string $filterTag
+ * @var array<int, array{name: string, slug: string}> $allTags
+ * @var array<int, array{name: string, slug: string}> $sidebarCategories
+ * @var string $filterTag tag slug
+ * @var string $filterCategory category slug
  * @var string $searchQuery
  * @var int $page
  * @var int $totalPages
@@ -17,6 +19,9 @@ require_once base_path('views/partials/head.php');
 require_once base_path('views/partials/navbar.php');
 
 $blogsUrl = blog_url('blogs');
+$allTags = $allTags ?? [];
+$sidebarCategories = $sidebarCategories ?? [];
+$filterCategory = $filterCategory ?? '';
 $startItem = $totalCount === 0 ? 0 : (($page - 1) * $perPage) + 1;
 $endItem = min($totalCount, $page * $perPage);
 
@@ -58,6 +63,9 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                   <?php if ($filterTag !== '') : ?>
                       <input type="hidden" name="tag" value="<?= htmlspecialchars($filterTag, ENT_QUOTES, 'UTF-8') ?>">
                   <?php endif; ?>
+                  <?php if ($filterCategory !== '') : ?>
+                      <input type="hidden" name="category" value="<?= htmlspecialchars($filterCategory, ENT_QUOTES, 'UTF-8') ?>">
+                  <?php endif; ?>
                     <label class="sr-only" for="blog-search">Search posts</label>
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                         <input id="blog-search"
@@ -78,28 +86,73 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                     <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Topics</p>
                     <div class="-mx-1 mt-3 flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
                         <a href="<?= htmlspecialchars(blogs_index_url([
+                          'category' => $filterCategory,
                           'q' => $searchQuery,
                           'page' => 1,
                         ]), ENT_QUOTES, 'UTF-8') ?>"
                            class="<?= $chipBase ?> <?= $filterTag === '' ? $chipActive : $chipIdle ?>"
                           <?= $filterTag === '' ? 'aria-current="true"' : '' ?>>
-                            All
+                            All topics
                         </a>
                       <?php foreach ($allTags as $tag) : ?>
+                          <?php
+                          $tSlug = (string) ($tag['slug'] ?? '');
+                          $tName = (string) ($tag['name'] ?? $tSlug);
+                          if ($tSlug === '') {
+                            continue;
+                          }
+                          ?>
                           <a href="<?= htmlspecialchars(blogs_index_url([
-                            'tag' => $tag,
+                            'tag' => $tSlug,
+                            'category' => $filterCategory,
                             'q' => $searchQuery,
                             'page' => 1,
                           ]), ENT_QUOTES, 'UTF-8') ?>"
-                             class="<?= $chipBase ?> <?= $filterTag === $tag ? $chipActive : $chipIdle ?>"
-                            <?= $filterTag === $tag ? 'aria-current="true"' : '' ?>>
-                            <?= htmlspecialchars($tag, ENT_QUOTES, 'UTF-8') ?>
+                             class="<?= $chipBase ?> <?= $filterTag === $tSlug ? $chipActive : $chipIdle ?>"
+                            <?= $filterTag === $tSlug ? 'aria-current="true"' : '' ?>>
+                            <?= htmlspecialchars($tName, ENT_QUOTES, 'UTF-8') ?>
                           </a>
                       <?php endforeach; ?>
                     </div>
                 </div>
 
-              <?php if ($filterTag !== '' || $searchQuery !== '') : ?>
+              <?php if ($sidebarCategories !== []) : ?>
+                <div class="mt-6 border-t border-stone-200/80 pt-6">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Categories</p>
+                    <div class="-mx-1 mt-3 flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
+                        <a href="<?= htmlspecialchars(blogs_index_url([
+                          'tag' => $filterTag,
+                          'q' => $searchQuery,
+                          'page' => 1,
+                        ]), ENT_QUOTES, 'UTF-8') ?>"
+                           class="<?= $chipBase ?> <?= $filterCategory === '' ? $chipActive : $chipIdle ?>"
+                          <?= $filterCategory === '' ? 'aria-current="true"' : '' ?>>
+                            All categories
+                        </a>
+                      <?php foreach ($sidebarCategories as $cat) : ?>
+                          <?php
+                          $cSlug = (string) ($cat['slug'] ?? '');
+                          $cName = (string) ($cat['name'] ?? $cSlug);
+                          if ($cSlug === '') {
+                            continue;
+                          }
+                          ?>
+                          <a href="<?= htmlspecialchars(blogs_index_url([
+                            'tag' => $filterTag,
+                            'category' => $cSlug,
+                            'q' => $searchQuery,
+                            'page' => 1,
+                          ]), ENT_QUOTES, 'UTF-8') ?>"
+                             class="<?= $chipBase ?> <?= $filterCategory === $cSlug ? $chipActive : $chipIdle ?>"
+                            <?= $filterCategory === $cSlug ? 'aria-current="true"' : '' ?>>
+                            <?= htmlspecialchars($cName, ENT_QUOTES, 'UTF-8') ?>
+                          </a>
+                      <?php endforeach; ?>
+                    </div>
+                </div>
+              <?php endif; ?>
+
+              <?php if ($filterTag !== '' || $filterCategory !== '' || $searchQuery !== '') : ?>
                   <p class="mt-5">
                       <a href="<?= htmlspecialchars($blogsUrl, ENT_QUOTES, 'UTF-8') ?>"
                          class="text-xs font-semibold text-amber-900 underline decoration-amber-300 underline-offset-4 transition hover:decoration-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
@@ -137,14 +190,43 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                     <li>
                         <article
                                 class="relative flex h-full flex-col rounded-xl border border-stone-200/90 bg-white p-6 shadow-sm transition hover:border-stone-300 hover:shadow-md">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
                                 <time class="text-xs font-medium tabular-nums text-stone-500"
                                       datetime="<?= htmlspecialchars((string)($post['dateIso'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                                   <?= htmlspecialchars((string)($post['dateDisplay'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                 </time>
-                                <span class="rounded-full bg-amber-100/90 px-2.5 py-0.5 text-xs font-semibold text-amber-900/90 ring-1 ring-amber-200/80">
-                                        <?= htmlspecialchars((string)($post['tag'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
-                                    </span>
+                                <div class="flex max-w-[min(100%,18rem)] flex-wrap items-center justify-end gap-1.5">
+                                  <?php
+                                  $catSlug = trim((string) ($post['category_slug'] ?? ''));
+                                  $catName = trim((string) ($post['category'] ?? ''));
+                                  if ($catSlug !== '' && $catName !== '') :
+                                      ?>
+                                        <a href="<?= htmlspecialchars(blogs_index_url(['category' => $catSlug, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                                           class="relative z-10 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-800 ring-1 ring-stone-200/80 transition hover:bg-stone-200/90">
+                                            <?= htmlspecialchars($catName, ENT_QUOTES, 'UTF-8') ?>
+                                        </a>
+                                  <?php endif; ?>
+                                  <?php
+                                  $ptags = isset($post['tags']) && is_array($post['tags']) ? $post['tags'] : [];
+                                  foreach ($ptags as $tg) :
+                                      if (!is_array($tg)) {
+                                        continue;
+                                      }
+                                      $ts = trim((string) ($tg['slug'] ?? ''));
+                                      $tn = trim((string) ($tg['name'] ?? ''));
+                                      if ($ts === '') {
+                                        continue;
+                                      }
+                                      $tc = blog_sanitize_color($tg['color'] ?? null, '#78716c');
+                                      ?>
+                                        <a href="<?= htmlspecialchars(blogs_index_url(['tag' => $ts, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                                           class="relative z-10 inline-flex max-w-full items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-stone-900 ring-1 ring-stone-200/80 transition hover:opacity-90"
+                                           style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>22;">
+                                            <span class="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-stone-900/10" style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span>
+                                            <span class="min-w-0 truncate"><?= htmlspecialchars($tn !== '' ? $tn : $ts, ENT_QUOTES, 'UTF-8') ?></span>
+                                        </a>
+                                  <?php endforeach; ?>
+                                </div>
                             </div>
                             <p class="mt-2 text-xs font-medium text-stone-600">
                                 By <?= htmlspecialchars((string)($post['author'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
@@ -191,6 +273,7 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                     <?php if ($page > 1) : ?>
                         <a href="<?= htmlspecialchars(blogs_index_url([
                           'tag' => $filterTag,
+                          'category' => $filterCategory,
                           'q' => $searchQuery,
                           'page' => $page - 1,
                         ]), ENT_QUOTES, 'UTF-8') ?>"
@@ -206,6 +289,7 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                     <?php if ($page < $totalPages) : ?>
                         <a href="<?= htmlspecialchars(blogs_index_url([
                           'tag' => $filterTag,
+                          'category' => $filterCategory,
                           'q' => $searchQuery,
                           'page' => $page + 1,
                         ]), ENT_QUOTES, 'UTF-8') ?>"
@@ -243,6 +327,7 @@ $chipActive = 'border-amber-300/90 bg-amber-100/90 text-amber-950 ring-1 ring-am
                           <?php else : ?>
                               <a href="<?= htmlspecialchars(blogs_index_url([
                                 'tag' => $filterTag,
+                                'category' => $filterCategory,
                                 'q' => $searchQuery,
                                 'page' => $i,
                               ]), ENT_QUOTES, 'UTF-8') ?>"
