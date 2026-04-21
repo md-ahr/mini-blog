@@ -6,9 +6,9 @@ use Core\Database;
 $db = App::resolve(Database::class);
 
 $tagRows = $db->query(
-  "SELECT DISTINCT tag FROM posts WHERE tag IS NOT NULL AND TRIM(tag) <> '' ORDER BY tag ASC"
+  'SELECT name FROM tags ORDER BY name ASC'
 )->get();
-$allTags = array_values(array_map(static fn (array $r): string => (string) $r['tag'], $tagRows));
+$allTags = array_values(array_map(static fn (array $r): string => (string) $r['name'], $tagRows));
 
 $filterTag = isset($_GET['tag']) ? trim((string) $_GET['tag']) : '';
 if ($filterTag !== '' && !in_array($filterTag, $allTags, true)) {
@@ -22,8 +22,9 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 
 $where = [];
 $params = [];
+$publishedSql = "p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at <= CURDATE()";
 if ($filterTag !== '') {
-  $where[] = 'p.tag = ?';
+  $where[] = 'EXISTS (SELECT 1 FROM post_tag pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id AND t.name = ?)';
   $params[] = $filterTag;
 }
 if ($searchQuery !== '') {
@@ -33,14 +34,17 @@ if ($searchQuery !== '') {
   $params[] = $like;
   $params[] = $like;
 }
-$whereSql = $where === [] ? '' : ' AND ' . implode(' AND ', $where);
+$filterSql = $where === [] ? '' : ' AND ' . implode(' AND ', $where);
+$whereSql = $publishedSql . $filterSql;
 
 $baseFrom = 'FROM posts p INNER JOIN users u ON u.id = p.user_id';
 
-$totalInDb = (int) ($db->query('SELECT COUNT(*) AS c FROM posts')->find()['c'] ?? 0);
+$totalInDb = (int) ($db->query(
+  "SELECT COUNT(*) AS c FROM posts p WHERE $publishedSql"
+)->find()['c'] ?? 0);
 
 $totalCount = (int) ($db->query(
-  "SELECT COUNT(*) AS c $baseFrom WHERE 1=1 $whereSql",
+  "SELECT COUNT(*) AS c $baseFrom WHERE $whereSql",
   $params
 )->find()['c'] ?? 0);
 
@@ -54,9 +58,10 @@ $limit = $perPage;
 $posts = [];
 if ($totalCount > 0) {
   $rows = $db->query(
-    "SELECT p.slug, p.title, p.excerpt, p.tag, p.reading_minutes, p.published_at, u.name AS author
+    "SELECT p.slug, p.title, p.excerpt, p.reading_minutes, p.published_at, p.featured_image_url, u.name AS author,
+            (SELECT t.name FROM post_tag pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = p.id ORDER BY t.name ASC LIMIT 1) AS tag
      $baseFrom
-     WHERE 1=1 $whereSql
+     WHERE $whereSql
      ORDER BY p.published_at DESC, p.id DESC
      LIMIT $limit OFFSET $offset",
     $params

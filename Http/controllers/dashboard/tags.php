@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/guard.php';
+
 view('dashboard/tags.view.php', [
   'pageTitle' => 'Tags — Dashboard',
   'heading' => 'Tags',

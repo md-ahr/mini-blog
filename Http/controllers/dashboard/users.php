@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/guard.php';
+
 view('dashboard/users.view.php', [
   'pageTitle' => 'Users — Dashboard',
   'heading' => 'Users',

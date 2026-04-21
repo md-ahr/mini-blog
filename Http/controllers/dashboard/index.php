@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/guard.php';
+
 view('dashboard/index.view.php', [
   'pageTitle' => 'Dashboard — Mini Blog',
   'heading' => 'Overview',

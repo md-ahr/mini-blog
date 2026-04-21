@@ -2,10 +2,12 @@
 $path = blog_current_path();
 $isHome = $path === '/' || $path === '';
 $isAbout = $path === '/about';
+$isContact = $path === '/contact';
 $isBlog = $path === '/blogs' || str_starts_with($path, '/blogs/');
 $isLogin = $path === '/login';
 $homeUrl = blog_url();
 $aboutUrl = blog_url('about');
+$contactUrl = blog_url('contact');
 $blogUrl = blog_url('blogs');
 $loginUrl = blog_url('login');
 
@@ -29,23 +31,23 @@ $linkActive = 'bg-stone-200/70 text-stone-900';
         <nav class="hidden items-center gap-1 md:flex" aria-label="Primary">
             <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
                class="<?= $linkBase ?> <?= $isHome ? $linkActive : $linkIdle ?>"
-                <?= $isHome ? 'aria-current="page"' : '' ?>>
+                    <?= $isHome ? 'aria-current="page"' : '' ?>>
                 Home
             </a>
             <a href="<?= htmlspecialchars($blogUrl, ENT_QUOTES, 'UTF-8') ?>"
                class="<?= $linkBase ?> <?= $isBlog ? $linkActive : $linkIdle ?>"
-                <?= $isBlog ? 'aria-current="page"' : '' ?>>
+                    <?= $isBlog ? 'aria-current="page"' : '' ?>>
                 Blog
             </a>
             <a href="<?= htmlspecialchars($aboutUrl, ENT_QUOTES, 'UTF-8') ?>"
                class="<?= $linkBase ?> <?= $isAbout ? $linkActive : $linkIdle ?>"
-                <?= $isAbout ? 'aria-current="page"' : '' ?>>
+                    <?= $isAbout ? 'aria-current="page"' : '' ?>>
                 About
             </a>
-            <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>"
-               class="<?= $linkBase ?> <?= $isLogin ? $linkActive : $linkIdle ?>"
-                <?= $isLogin ? 'aria-current="page"' : '' ?>>
-                Sign in
+            <a href="<?= htmlspecialchars($contactUrl, ENT_QUOTES, 'UTF-8') ?>"
+               class="<?= $linkBase ?> <?= $isContact ? $linkActive : $linkIdle ?>"
+                    <?= $isContact ? 'aria-current="page"' : '' ?>>
+                Contact
             </a>
         </nav>
 
@@ -65,26 +67,26 @@ $linkActive = 'bg-stone-200/70 text-stone-900';
                     <a href="<?= htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8') ?>"
                        class="block px-4 py-2.5 text-sm font-medium <?= $isHome ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
                        role="menuitem"
-                        <?= $isHome ? 'aria-current="page"' : '' ?>>
+                            <?= $isHome ? 'aria-current="page"' : '' ?>>
                         Home
                     </a>
                     <a href="<?= htmlspecialchars($blogUrl, ENT_QUOTES, 'UTF-8') ?>"
                        class="block px-4 py-2.5 text-sm font-medium <?= $isBlog ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
                        role="menuitem"
-                        <?= $isBlog ? 'aria-current="page"' : '' ?>>
+                            <?= $isBlog ? 'aria-current="page"' : '' ?>>
                         Blog
                     </a>
                     <a href="<?= htmlspecialchars($aboutUrl, ENT_QUOTES, 'UTF-8') ?>"
                        class="block px-4 py-2.5 text-sm font-medium <?= $isAbout ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
                        role="menuitem"
-                        <?= $isAbout ? 'aria-current="page"' : '' ?>>
+                            <?= $isAbout ? 'aria-current="page"' : '' ?>>
                         About
                     </a>
-                    <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>"
-                       class="block px-4 py-2.5 text-sm font-medium <?= $isLogin ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                    <a href="<?= htmlspecialchars($contactUrl, ENT_QUOTES, 'UTF-8') ?>"
+                       class="block px-4 py-2.5 text-sm font-medium <?= $isContact ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
                        role="menuitem"
-                        <?= $isLogin ? 'aria-current="page"' : '' ?>>
-                        Sign in
+                            <?= $isContact ? 'aria-current="page"' : '' ?>>
+                        Contact
                     </a>
                 </div>
             </details>

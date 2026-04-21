@@ -3,3 +3,6 @@
 .env
 
 .idea/
+
+/public/uploads/avatars/*
+!/public/uploads/avatars/.gitkeep

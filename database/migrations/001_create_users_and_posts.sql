@@ -1,6 +1,8 @@
 -- Mini Blog — users & posts (MySQL 8+, utf8mb4)
 -- Run after the database exists, e.g.:
 --   mysql -h 127.0.0.1 -u root -p mini_blog < database/migrations/001_create_users_and_posts.sql
+-- Or apply all migrations in order (recommended):
+--   php database/migrate.php
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';

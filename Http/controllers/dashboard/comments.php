@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/guard.php';
+
 view('dashboard/comments.view.php', [
   'pageTitle' => 'Comments — Dashboard',
   'heading' => 'Comments',

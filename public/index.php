@@ -17,6 +17,8 @@ spl_autoload_register(function ($class) {
 
 require_once BASE_PATH . 'Core/functions.php';
 
+auth_session_bootstrap();
+
 require_once base_path('bootstrap.php');
 
 $router = new Router();

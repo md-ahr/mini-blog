@@ -282,19 +282,6 @@
                 setText(modal, '[data-view="setting-rss"]', trigger.getAttribute('data-rss'));
             }
 
-            if (id === 'modal-profile-edit') {
-                setVal(modal, '[name="profile_name"]', trigger.getAttribute('data-profile-name'));
-                setVal(modal, '[name="profile_email"]', trigger.getAttribute('data-profile-email'));
-                setVal(modal, '[name="profile_bio"]', trigger.getAttribute('data-profile-bio'));
-            }
-
-            if (id === 'modal-profile-view') {
-                setText(modal, '[data-view="profile-name"]', trigger.getAttribute('data-profile-name'));
-                setText(modal, '[data-view="profile-email"]', trigger.getAttribute('data-profile-email'));
-                setText(modal, '[data-view="profile-role"]', trigger.getAttribute('data-profile-role'));
-                setText(modal, '[data-view="profile-bio"]', trigger.getAttribute('data-profile-bio'));
-            }
-
             if (id === 'modal-activity-view') {
                 setText(modal, '[data-view="activity-title"]', trigger.getAttribute('data-activity-title'));
                 setText(modal, '[data-view="activity-meta"]', trigger.getAttribute('data-activity-meta'));
