@@ -342,3 +342,9 @@
 2026-04-21T10:42:07+00:00 {"final_uri":"\/blogs","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/blogs","QUERY_STRING":"category=technology","REQUEST_URI":"\/blogs?category=technology"}
 2026-04-21T10:42:09+00:00 {"final_uri":"\/","SCRIPT_NAME":"\/index.php","PATH_INFO":null,"QUERY_STRING":null,"REQUEST_URI":"\/"}
 2026-04-21T10:42:12+00:00 {"final_uri":"\/blogs","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/blogs","QUERY_STRING":"category=technology","REQUEST_URI":"\/blogs?category=technology"}
+2026-04-21T10:44:24+00:00 {"final_uri":"\/","SCRIPT_NAME":"\/index.php","PATH_INFO":null,"QUERY_STRING":null,"REQUEST_URI":"\/"}
+2026-04-21T10:44:36+00:00 {"final_uri":"\/.well-known\/appspecific\/com.chrome.devtools.json","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/.well-known\/appspecific\/com.chrome.devtools.json","QUERY_STRING":null,"REQUEST_URI":"\/.well-known\/appspecific\/com.chrome.devtools.json"}
+2026-04-21T10:44:39+00:00 {"final_uri":"\/blogs\/four-layer-architecture-pattern","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/blogs\/four-layer-architecture-pattern","QUERY_STRING":null,"REQUEST_URI":"\/blogs\/four-layer-architecture-pattern"}
+2026-04-21T10:44:39+00:00 {"final_uri":"\/.well-known\/appspecific\/com.chrome.devtools.json","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/.well-known\/appspecific\/com.chrome.devtools.json","QUERY_STRING":null,"REQUEST_URI":"\/.well-known\/appspecific\/com.chrome.devtools.json"}
+2026-04-21T10:44:44+00:00 {"final_uri":"\/contact","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/contact","QUERY_STRING":null,"REQUEST_URI":"\/contact"}
+2026-04-21T10:44:44+00:00 {"final_uri":"\/.well-known\/appspecific\/com.chrome.devtools.json","SCRIPT_NAME":"\/index.php","PATH_INFO":"\/.well-known\/appspecific\/com.chrome.devtools.json","QUERY_STRING":null,"REQUEST_URI":"\/.well-known\/appspecific\/com.chrome.devtools.json"}
