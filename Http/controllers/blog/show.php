@@ -202,7 +202,7 @@ foreach ($commentRows as $cr) {
     'parent_id' => $parentInt !== null && $parentInt > 0 ? $parentInt : null,
     'author_name' => (string) ($cr['author_name'] ?? ''),
     'body' => (string) ($cr['body'] ?? ''),
-    'created_at_display' => $dt instanceof DateTimeInterface ? $dt->format('M j, Y \a\t g:i a') : '',
+    'created_at_display' => $dt instanceof DateTimeInterface ? blog_format_localized_date($dt, 'datetime') : '',
     'created_at_iso' => $dt instanceof DateTimeInterface ? $dt->format('c') : '',
     'children' => [],
   ];

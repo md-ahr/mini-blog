@@ -149,7 +149,7 @@ $pageActions = '';
                 $postLink = $postSlug !== '' ? blog_post_url($postSlug) : '';
                 $createdRaw = $c['created_at'] ?? '';
                 $createdDt = $createdRaw ? date_create((string) $createdRaw) : false;
-                $whenDisplay = $createdDt instanceof DateTimeInterface ? $createdDt->format('M j, Y g:i a') : '—';
+                $whenDisplay = $createdDt instanceof DateTimeInterface ? blog_format_localized_date($createdDt, 'datetime') : '—';
                 $preview = mb_strlen($bd) > 100 ? mb_substr($bd, 0, 100) . '…' : $bd;
                 $payload = [
                   'id' => $cid,

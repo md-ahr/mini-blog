@@ -180,7 +180,7 @@ $endItem = min($totalPosts, $page * $perPage);
                 $imgUrl = trim((string) ($post['featured_image_url'] ?? ''));
                 $upd = $post['updated_at'] ?? null;
                 $updDt = $upd ? date_create((string) $upd) : false;
-                $updDisp = $updDt instanceof DateTimeInterface ? $updDt->format('M j, Y g:i a') : '—';
+                $updDisp = $updDt instanceof DateTimeInterface ? blog_format_localized_date($updDt, 'datetime') : '—';
                 $delBody = 'Delete “' . $title . '”? This cannot be undone.';
                 ?>
                 <tr class="hover:bg-stone-50/60">
@@ -251,7 +251,7 @@ $endItem = min($totalPosts, $page * $perPage);
         $imgUrl = trim((string) ($post['featured_image_url'] ?? ''));
         $upd = $post['updated_at'] ?? null;
         $updDt = $upd ? date_create((string) $upd) : false;
-        $updDisp = $updDt instanceof DateTimeInterface ? $updDt->format('M j, Y g:i a') : '—';
+        $updDisp = $updDt instanceof DateTimeInterface ? blog_format_localized_date($updDt, 'datetime') : '—';
         $pubForm = '';
         $pAt = $post['published_at'] ?? null;
         if ($pAt !== null && $pAt !== '') {

@@ -33,5 +33,6 @@ $router->post('/dashboard/comments', 'dashboard/comments.php');
 $router->get('/dashboard/users', 'dashboard/users.php');
 $router->post('/dashboard/users', 'dashboard/users.php');
 $router->get('/dashboard/settings', 'dashboard/settings.php');
+$router->post('/dashboard/settings', 'dashboard/settings.php');
 $router->get('/dashboard/profile', 'dashboard/profile.php');
 $router->post('/dashboard/profile', 'dashboard/profile.php');

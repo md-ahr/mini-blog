@@ -28,11 +28,17 @@ if ($method === 'POST') {
   }
 }
 
+$loginNotice = '';
+if (($_GET['notice'] ?? '') === 'account_deleted') {
+  $loginNotice = 'Your account has been removed.';
+}
+
 view('auth/login.view.php', [
   'pageTitle' => 'Sign in — Mini Blog',
   'metaDescription' => 'Sign in to manage posts, taxonomy, and settings.',
   'pageRobots' => 'noindex, nofollow',
   'loginError' => $error,
+  'loginNotice' => $loginNotice,
   'loginNext' => $loginNext,
   'csrfToken' => auth_csrf_token(),
 ]);

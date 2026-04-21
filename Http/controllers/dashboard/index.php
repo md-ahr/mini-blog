@@ -212,7 +212,7 @@ $dailyLabels = [];
 for ($i = $dayCount - 1; $i >= 0; $i--) {
   $d = $today->sub(new DateInterval('P' . $i . 'D'));
   $dateKeys[] = $d->format('Y-m-d');
-  $dailyLabels[] = $d->format('M j');
+  $dailyLabels[] = blog_format_localized_date($d, 'chart_day');
 }
 $chartStartDate = $dateKeys[0];
 

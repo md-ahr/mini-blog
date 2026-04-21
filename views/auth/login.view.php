@@ -4,6 +4,7 @@
  * @var string $metaDescription
  * @var string $pageRobots
  * @var string $loginError
+ * @var string $loginNotice
  * @var string $loginNext
  * @var string $csrfToken
  */
@@ -12,6 +13,7 @@ require_once base_path('views/partials/head.php');
 $homeUrl = blog_url();
 $loginUrl = blog_url('login');
 $loginError = $loginError ?? '';
+$loginNotice = $loginNotice ?? '';
 $loginNext = $loginNext ?? '';
 $csrfToken = $csrfToken ?? '';
 ?>
@@ -38,6 +40,12 @@ $csrfToken = $csrfToken ?? '';
                 <div class="mt-6 rounded-xl border border-red-200/90 bg-red-50/60 px-4 py-3 text-sm text-red-900 ring-1 ring-red-100/80"
                      role="alert">
                     <?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+            <?php if ($loginNotice !== '') : ?>
+                <div class="mt-6 rounded-xl border border-emerald-200/90 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950 ring-1 ring-emerald-100/80"
+                     role="status">
+                    <?= htmlspecialchars($loginNotice, ENT_QUOTES, 'UTF-8') ?>
                 </div>
             <?php endif; ?>
 

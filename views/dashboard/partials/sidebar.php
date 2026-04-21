@@ -8,20 +8,20 @@ $navIdle = 'text-stone-600 hover:bg-stone-100 hover:text-stone-900';
 $navActive = 'bg-stone-900 text-amber-50 shadow-sm ring-1 ring-stone-900/10';
 
 $navItemsAll = [
-    ['key' => 'overview', 'label' => 'Overview', 'href' => blog_url('dashboard'), 'icon' => 'home'],
-    ['key' => 'posts', 'label' => 'Posts', 'href' => blog_url('dashboard/posts'), 'icon' => 'doc'],
-    ['key' => 'tags', 'label' => 'Tags', 'href' => blog_url('dashboard/tags'), 'icon' => 'tag'],
-    ['key' => 'categories', 'label' => 'Categories', 'href' => blog_url('dashboard/categories'), 'icon' => 'folder'],
-    ['key' => 'comments', 'label' => 'Comments', 'href' => blog_url('dashboard/comments'), 'icon' => 'chat'],
-    ['key' => 'users', 'label' => 'Users', 'href' => blog_url('dashboard/users'), 'icon' => 'users'],
-    ['key' => 'settings', 'label' => 'Settings', 'href' => blog_url('dashboard/settings'), 'icon' => 'cog'],
-    ['key' => 'profile', 'label' => 'Profile', 'href' => blog_url('dashboard/profile'), 'icon' => 'user'],
+        ['key' => 'overview', 'label' => 'Overview', 'href' => blog_url('dashboard'), 'icon' => 'home'],
+        ['key' => 'posts', 'label' => 'Posts', 'href' => blog_url('dashboard/posts'), 'icon' => 'doc'],
+        ['key' => 'tags', 'label' => 'Tags', 'href' => blog_url('dashboard/tags'), 'icon' => 'tag'],
+        ['key' => 'categories', 'label' => 'Categories', 'href' => blog_url('dashboard/categories'), 'icon' => 'folder'],
+        ['key' => 'comments', 'label' => 'Comments', 'href' => blog_url('dashboard/comments'), 'icon' => 'chat'],
+        ['key' => 'users', 'label' => 'Users', 'href' => blog_url('dashboard/users'), 'icon' => 'users'],
+        ['key' => 'settings', 'label' => 'Settings', 'href' => blog_url('dashboard/settings'), 'icon' => 'cog'],
+        ['key' => 'profile', 'label' => 'Profile', 'href' => blog_url('dashboard/profile'), 'icon' => 'user'],
 ];
 
 $sessionRole = auth_user();
 $items = ($sessionRole !== null && ($sessionRole['role'] ?? '') === 'owner')
-    ? $navItemsAll
-    : array_values(array_filter($navItemsAll, static fn (array $it): bool => $it['key'] !== 'users'));
+        ? $navItemsAll
+        : array_values(array_filter($navItemsAll, static fn(array $it): bool => $it['key'] !== 'users'));
 
 $icon = static function (string $name): string {
     return match ($name) {
@@ -50,7 +50,8 @@ $icon = static function (string $name): string {
                 <p class="truncate text-xs font-medium text-stone-500">Dashboard</p>
             </div>
         </div>
-        <?php $sessionUserVariant = 'aside'; require base_path('views/dashboard/partials/session-user.php'); ?>
+        <?php $sessionUserVariant = 'aside';
+        require base_path('views/dashboard/partials/session-user.php'); ?>
         <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
             <?php foreach ($items as $item) : ?>
                 <?php
@@ -58,21 +59,13 @@ $icon = static function (string $name): string {
                 ?>
                 <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"
                    class="<?= $navItem ?> <?= $isActive ? $navActive : $navIdle ?>"
-                    <?= $isActive ? 'aria-current="page"' : '' ?>>
+                        <?= $isActive ? 'aria-current="page"' : '' ?>>
                     <?= $icon($item['icon']) ?>
                     <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
                 </a>
             <?php endforeach; ?>
         </nav>
         <div class="border-t border-stone-100 p-3 space-y-2">
-            <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
-               class="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-xs font-semibold text-stone-700 transition hover:border-stone-300 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" aria-hidden="true">
-                    <path d="M15 18 9 12l6-6"/>
-                </svg>
-                View site
-            </a>
             <button type="button"
                     data-modal-open="dashboard-confirm-modal"
                     data-confirm-title="Sign out?"
@@ -102,53 +95,56 @@ $icon = static function (string $name): string {
                     <span class="truncate">Dashboard</span>
                 </a>
                 <div class="flex shrink-0 items-center gap-1.5">
-                <?php $sessionUserVariant = 'toolbar'; require base_path('views/dashboard/partials/session-user.php'); ?>
-                <details class="relative group">
-                    <summary
-                            class="flex cursor-pointer list-none items-center justify-center rounded-lg border border-stone-200 bg-white p-2 text-stone-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100 [&::-webkit-details-marker]:hidden"
-                            aria-label="Open dashboard menu">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                             stroke-linecap="round" aria-hidden="true">
-                            <path d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </summary>
-                    <div
-                            class="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-900/10 ring-1 ring-stone-900/5"
-                            role="menu">
-                        <?php foreach ($items as $item) : ?>
-                            <?php $isActive = $dashboardNav === $item['key']; ?>
-                            <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"
-                               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium <?= $isActive ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
-                               role="menuitem"
-                                <?= $isActive ? 'aria-current="page"' : '' ?>>
-                                <?= $icon($item['icon']) ?>
-                                <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
-                            </a>
-                        <?php endforeach; ?>
-                        <div class="my-1 border-t border-stone-100"></div>
-                        <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
-                           class="block px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50"
-                           role="menuitem">
-                            View site
-                        </a>
-                        <button type="button"
-                                role="menuitem"
-                                data-modal-open="dashboard-confirm-modal"
-                                data-confirm-title="Sign out?"
-                                data-confirm-body="You will be signed out and returned to the sign-in page."
-                                data-confirm-label="Log out"
-                                data-confirm-variant="primary"
-                                data-confirm-redirect="<?= htmlspecialchars(blog_url('logout'), ENT_QUOTES, 'UTF-8') ?>"
-                                class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50">
-                            <svg class="h-5 w-5 shrink-0 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M10 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-                                <path d="M15 12H9"/>
-                                <path d="m17 8 4 4-4 4"/>
+                    <?php $sessionUserVariant = 'toolbar';
+                    require base_path('views/dashboard/partials/session-user.php'); ?>
+                    <details class="relative group">
+                        <summary
+                                class="flex cursor-pointer list-none items-center justify-center rounded-lg border border-stone-200 bg-white p-2 text-stone-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100 [&::-webkit-details-marker]:hidden"
+                                aria-label="Open dashboard menu">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" aria-hidden="true">
+                                <path d="M4 6h16M4 12h16M4 18h16"/>
                             </svg>
-                            Log out
-                        </button>
-                    </div>
-                </details>
+                        </summary>
+                        <div
+                                class="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-900/10 ring-1 ring-stone-900/5"
+                                role="menu">
+                            <?php foreach ($items as $item) : ?>
+                                <?php $isActive = $dashboardNav === $item['key']; ?>
+                                <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"
+                                   class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium <?= $isActive ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                                   role="menuitem"
+                                        <?= $isActive ? 'aria-current="page"' : '' ?>>
+                                    <?= $icon($item['icon']) ?>
+                                    <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
+                                </a>
+                            <?php endforeach; ?>
+                            <div class="my-1 border-t border-stone-100"></div>
+                            <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
+                               class="block px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50"
+                               role="menuitem">
+                                View site
+                            </a>
+                            <button type="button"
+                                    role="menuitem"
+                                    data-modal-open="dashboard-confirm-modal"
+                                    data-confirm-title="Sign out?"
+                                    data-confirm-body="You will be signed out and returned to the sign-in page."
+                                    data-confirm-label="Log out"
+                                    data-confirm-variant="primary"
+                                    data-confirm-redirect="<?= htmlspecialchars(blog_url('logout'), ENT_QUOTES, 'UTF-8') ?>"
+                                    class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50">
+                                <svg class="h-5 w-5 shrink-0 opacity-90" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+                                     stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M10 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+                                    <path d="M15 12H9"/>
+                                    <path d="m17 8 4 4-4 4"/>
+                                </svg>
+                                Log out
+                            </button>
+                        </div>
+                    </details>
                 </div>
             </div>
         </header>

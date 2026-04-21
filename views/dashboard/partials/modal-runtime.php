@@ -338,12 +338,6 @@
                 setText(modal, '[data-view="user-status"]', trigger.getAttribute('data-user-status'));
             }
 
-            if (id === 'modal-setting-edit') {
-                setVal(modal, '[name="setting_site_title"]', trigger.getAttribute('data-site-title'));
-                setVal(modal, '[name="setting_tagline"]', trigger.getAttribute('data-tagline'));
-                setVal(modal, '[name="setting_posts_per_page"]', trigger.getAttribute('data-posts-per-page'));
-            }
-
             if (id === 'modal-setting-view') {
                 setText(modal, '[data-view="setting-site-title"]', trigger.getAttribute('data-site-title'));
                 setText(modal, '[data-view="setting-tagline"]', trigger.getAttribute('data-tagline'));

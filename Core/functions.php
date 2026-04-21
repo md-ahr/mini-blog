@@ -114,7 +114,7 @@ function blog_post_from_db_row(array $row): array
   $authorName = (string) ($row['author'] ?? '');
   $updatedRaw = $row['updated_at'] ?? null;
   $updatedDt = $updatedRaw ? date_create((string) $updatedRaw) : false;
-  $updatedDisplay = $updatedDt instanceof DateTimeInterface ? $updatedDt->format('M j, Y') : '';
+  $updatedDisplay = $updatedDt instanceof DateTimeInterface ? blog_format_localized_date($updatedDt, 'date') : '';
   $updatedIso = $updatedDt instanceof DateTimeInterface ? $updatedDt->format('c') : '';
   $publishedDt = $published !== '' ? date_create($published) : false;
   $showUpdated = false;
@@ -134,7 +134,7 @@ function blog_post_from_db_row(array $row): array
     'authorAvatarAlt' => $authorAvatarAlt !== '' ? $authorAvatarAlt : ($authorName !== '' ? $authorName : 'Author'),
     'authorBio' => trim((string) ($row['author_bio'] ?? '')),
     'dateIso' => $published,
-    'dateDisplay' => $dt->format('M j, Y'),
+    'dateDisplay' => blog_format_localized_date($dt, 'date'),
     'readingMinutes' => (int) ($row['reading_minutes'] ?? 0),
     'featuredImageUrl' => isset($row['featured_image_url']) && $row['featured_image_url'] !== null && $row['featured_image_url'] !== ''
       ? (string) $row['featured_image_url']
@@ -183,7 +183,7 @@ function blog_short_relative_time(?string $mysqlDatetime): string
   $now = new DateTimeImmutable('now');
   $sec = $now->getTimestamp() - $dt->getTimestamp();
   if ($sec < 0) {
-    return $dt->format('M j, Y');
+    return blog_format_localized_date($dt, 'date', true);
   }
   if ($sec < 60) {
     return 'Just now';
@@ -200,7 +200,7 @@ function blog_short_relative_time(?string $mysqlDatetime): string
     $n = (int) floor($sec / 86400);
     return $n === 1 ? '1 day ago' : $n . ' days ago';
   }
-  return $dt->format('M j, Y');
+  return blog_format_localized_date($dt, 'date', true);
 }
 
 /**
@@ -289,6 +289,215 @@ function blog_unique_slug(\Core\Database $db, string $table, string $baseSlug, ?
     $candidate = mb_substr($slug, 0, 191 - mb_strlen($suffix)) . $suffix;
     $n++;
   }
+}
+
+/**
+ * Default site settings (used when a key is missing from the database).
+ *
+ * @return array<string, string>
+ */
+function blog_settings_defaults(): array
+{
+  return [
+    'site_title' => 'Mini Blog',
+    'site_tagline' => 'Notes & long-form',
+    'posts_per_page' => '12',
+    'date_format' => 'M j, Y',
+    'site_locale' => 'en_US',
+    'rss_enabled' => '1',
+    'homepage_display' => 'latest_posts',
+    'homepage_static_slug' => '',
+    'comments_enabled' => '1',
+    'comments_require_moderation' => '1',
+    'comments_close_after_30_days' => '0',
+  ];
+}
+
+/**
+ * Site settings from `settings` merged with defaults.
+ *
+ * @return array<string, string>
+ */
+function blog_settings_map(\Core\Database $db): array
+{
+  if (isset($GLOBALS['_blog_settings_map_cache']) && is_array($GLOBALS['_blog_settings_map_cache'])) {
+    return $GLOBALS['_blog_settings_map_cache'];
+  }
+  $out = blog_settings_defaults();
+  try {
+    $rows = $db->query('SELECT `setting_key`, `setting_value` FROM `settings`')->get();
+  } catch (\Throwable) {
+    $GLOBALS['_blog_settings_map_cache'] = $out;
+    return $out;
+  }
+  foreach ($rows as $r) {
+    $k = (string) ($r['setting_key'] ?? '');
+    if ($k !== '') {
+      $out[$k] = (string) ($r['setting_value'] ?? '');
+    }
+  }
+  $GLOBALS['_blog_settings_map_cache'] = $out;
+  return $out;
+}
+
+function blog_settings_set(\Core\Database $db, string $key, string $value): void
+{
+  $db->query(
+    'INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`)',
+    [$key, $value]
+  );
+  unset($GLOBALS['_blog_settings_map_cache']);
+}
+
+/**
+ * Normalize locale tag for ICU (e.g. en-US → en_US).
+ */
+function blog_normalize_site_locale(string $raw): string
+{
+  $raw = trim(str_replace('-', '_', $raw));
+  if ($raw === '') {
+    return 'en_US';
+  }
+  if (extension_loaded('intl')) {
+    $c = \Locale::canonicalize($raw);
+    if (is_string($c) && $c !== '') {
+      return $c;
+    }
+  }
+  if (preg_match('/^[a-z]{2}_[A-Za-z0-9]{2,}$/', $raw)) {
+    return $raw;
+  }
+  return 'en_US';
+}
+
+/**
+ * Format a date/time for display using Settings → date format + site locale.
+ *
+ * @param 'date'|'datetime'|'month_year'|'chart_day' $kind
+ * @param bool $forceAbsolute When true, never use the "relative" setting (avoids recursion from blog_short_relative_time).
+ */
+function blog_format_localized_date(?\DateTimeInterface $dt, string $kind = 'date', bool $forceAbsolute = false): string
+{
+  if ($dt === null) {
+    return '—';
+  }
+  try {
+    $db = \Core\App::resolve(\Core\Database::class);
+    $map = blog_settings_map($db);
+  } catch (\Throwable) {
+    return $dt->format($kind === 'datetime' ? 'M j, Y g:i a' : 'M j, Y');
+  }
+
+  $locale = blog_normalize_site_locale((string) ($map['site_locale'] ?? 'en_US'));
+  $mode = (string) ($map['date_format'] ?? 'M j, Y');
+  $tz = $dt->getTimezone();
+  $tzStr = $tz->getName();
+
+  if ($kind === 'chart_day') {
+    if (extension_loaded('intl')) {
+      $fmt = new \IntlDateFormatter(
+        $locale,
+        \IntlDateFormatter::NONE,
+        \IntlDateFormatter::NONE,
+        $tzStr,
+        \IntlDateFormatter::GREGORIAN,
+        'MMM d'
+      );
+      $out = $fmt->format($dt);
+      return $out !== false ? (string) $out : $dt->format('M j');
+    }
+    return $dt->format('M j');
+  }
+
+  if ($mode === 'relative') {
+    if ($kind === 'month_year') {
+      $mode = 'M j, Y';
+    } elseif (in_array($kind, ['date', 'datetime'], true)) {
+      if (!$forceAbsolute) {
+        return blog_short_relative_time($dt->format('Y-m-d H:i:s'));
+      }
+      $mode = 'M j, Y';
+    }
+  }
+
+  if ($kind === 'datetime') {
+    if (extension_loaded('intl')) {
+      $fmt = new \IntlDateFormatter(
+        $locale,
+        $mode === 'Y-m-d' ? \IntlDateFormatter::SHORT : \IntlDateFormatter::MEDIUM,
+        \IntlDateFormatter::SHORT,
+        $tzStr,
+        \IntlDateFormatter::GREGORIAN
+      );
+      if ($mode === 'Y-m-d') {
+        $fmt->setPattern('yyyy-MM-dd HH:mm');
+      }
+      $out = $fmt->format($dt);
+      return $out !== false ? (string) $out : $dt->format('Y-m-d H:i');
+    }
+    return $mode === 'Y-m-d' ? $dt->format('Y-m-d H:i') : $dt->format('M j, Y g:i a');
+  }
+
+  if ($kind === 'month_year') {
+    if (extension_loaded('intl')) {
+      $fmt = new \IntlDateFormatter(
+        $locale,
+        \IntlDateFormatter::NONE,
+        \IntlDateFormatter::NONE,
+        $tzStr,
+        \IntlDateFormatter::GREGORIAN,
+        'LLL y'
+      );
+      $out = $fmt->format($dt);
+      return $out !== false ? (string) $out : $dt->format('M Y');
+    }
+    return $dt->format('M Y');
+  }
+
+  // kind === 'date'
+  if (extension_loaded('intl')) {
+    if ($mode === 'Y-m-d') {
+      $fmt = new \IntlDateFormatter(
+        $locale,
+        \IntlDateFormatter::NONE,
+        \IntlDateFormatter::NONE,
+        $tzStr,
+        \IntlDateFormatter::GREGORIAN,
+        'yyyy-MM-dd'
+      );
+    } else {
+      $fmt = new \IntlDateFormatter(
+        $locale,
+        \IntlDateFormatter::MEDIUM,
+        \IntlDateFormatter::NONE,
+        $tzStr,
+        \IntlDateFormatter::GREGORIAN
+      );
+    }
+    $out = $fmt->format($dt);
+    return $out !== false ? (string) $out : $dt->format('M j, Y');
+  }
+
+  return blog_format_localized_date_fallback($dt, $locale, $mode, 'date', $tzStr);
+}
+
+/**
+ * @param 'date'|'chart_day' $kind
+ */
+function blog_format_localized_date_fallback(
+  \DateTimeInterface $dt,
+  string $locale,
+  string $mode,
+  string $kind,
+  string $tzStr
+): string {
+  if ($mode === 'Y-m-d') {
+    return $dt->format('Y-m-d');
+  }
+  if ($kind === 'chart_day') {
+    return $dt->format('M j');
+  }
+  return $dt->format('M j, Y');
 }
 
 /**
@@ -864,8 +1073,8 @@ function profile_format_for_view(array $row): array
     'avatar_url' => trim((string) ($row['avatar_url'] ?? '')),
     'avatar_alt' => trim((string) ($row['avatar_alt'] ?? '')),
     'initials' => $initials,
-    'member_since_display' => $created instanceof DateTimeInterface ? $created->format('M Y') : '—',
-    'last_login_display' => $last instanceof DateTimeInterface ? $last->format('M j, Y \a\t g:i a') : 'Never',
+    'member_since_display' => $created instanceof DateTimeInterface ? blog_format_localized_date($created, 'month_year') : '—',
+    'last_login_display' => $last instanceof DateTimeInterface ? blog_format_localized_date($last, 'datetime') : 'Never',
     'avatar_src' => auth_user_avatar_src([
       'avatar_url' => trim((string) ($row['avatar_url'] ?? '')),
       'avatar_alt' => trim((string) ($row['avatar_alt'] ?? '')),
