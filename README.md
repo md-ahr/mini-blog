@@ -1,48 +1,112 @@
 # PHP Mini Blog
 
-A small PHP app with routing, views, and optional MySQL.
+A compact PHP blog with public pages, a password-protected dashboard (posts, tags, categories, comments, users, settings), and a contact form. Data lives in MySQL; outbound mail uses **Mailtrap** (SMTP) when configured, with a fallback to PHP `mail()`.
 
 ## Requirements
 
-- PHP 8.0+
-- [Docker](https://docs.docker.com/get-docker/) (optional, for MySQL)
+- **PHP** 8.0 or newer with extensions: `pdo_mysql`, `session`, `json`, `mbstring` (recommended: `intl` for localized dates)
+- **Composer** 2.x (for PHPMailer)
+- **MySQL** 8.x (local or Docker)
 
 ## Quick start
 
-1. **Clone or copy** this project and open a terminal in the project folder.
+### 1. Clone and install PHP dependencies
 
-2. **Environment** — copy `.env` if needed and adjust values. Defaults match `docker-compose.yml` (`mini_blog` database,
-   root user).
+```bash
+git clone <your-fork-or-repo-url> php-mini-blog
+cd php-mini-blog
+composer install
+```
 
-3. **Database (optional)** — start MySQL:
+### 2. Environment
 
-   ```bash
-   docker compose up -d
-   ```
+Copy the example env file and edit it:
 
-   Wait until the container is healthy, then use the app (migrations are not included; add tables when you wire up
-   `Core\Database`).
+```bash
+cp .env.example .env
+```
 
-4. **Run the app** — from the **project root**, use the `public` folder as the document root and the built-in router so
-   `/` hits `public/index.php`:
+The app loads `.env` from the project root when present (see `public/index.php`). Values are read with `getenv()`; you can also set the same variables in your web server or shell.
 
-   ```bash
-   php -S 127.0.0.1:8000 -t public
-   ```
+**Database** — defaults match `docker-compose.yml` and `config.php`:
 
-5. Open **http://127.0.0.1:8000** in your browser.
+| Variable       | Typical value   |
+|----------------|-----------------|
+| `DB_HOST`      | `127.0.0.1`     |
+| `DB_PORT`      | `3306`          |
+| `DB_DATABASE`  | `mini_blog`     |
+| `DB_USERNAME`  | `root`          |
+| `DB_PASSWORD`  | (see compose)   |
+
+**Contact form (Mailtrap)** — for [Email Testing](https://mailtrap.io), open your sandbox → **Integration** → **SMTP**, then set:
+
+| Variable             | Description                                      |
+|----------------------|--------------------------------------------------|
+| `MAILTRAP_USER`      | SMTP username from Mailtrap                     |
+| `MAILTRAP_PASSWORD`  | SMTP password from Mailtrap                      |
+| `MAILTRAP_HOST`      | Default: `sandbox.smtp.mailtrap.io`              |
+| `MAILTRAP_PORT`      | Default: `2525`                                  |
+| `MAILTRAP_ENCRYPTION`| `tls` (default), `ssl`, or `none`                |
+| `CONTACT_EMAIL`      | Address shown as the message recipient (inbox)   |
+
+Optional: `CONTACT_FROM_NAME`, `CONTACT_FROM_EMAIL` for the SMTP `From` header.
+
+If Mailtrap variables are omitted, the contact form still attempts delivery with PHP `mail()` (depends on server configuration).
+
+### 3. Database
+
+Start MySQL (optional, if you use the bundled compose file):
+
+```bash
+docker compose up -d
+```
+
+Create the schema and apply migrations:
+
+```bash
+php database/migrate.php
+```
+
+Run this whenever new files appear under `database/migrations/`.
+
+### 4. Run the app
+
+From the **project root**, serve the `public` directory (required so `BASE_PATH` and assets resolve correctly):
+
+```bash
+php -S 127.0.0.1:8000 -t public
+```
+
+Open **http://127.0.0.1:8000**.
+
+For Apache/Nginx, point the document root at `public/` and route all requests to `public/index.php` (see `public/router.php` for front-controller style setups).
+
+## Features
+
+- **Public**: home, about, contact (POST + validation, honeypot, CSRF, rate limit), blog index and post pages with comments (per site settings).
+- **Auth**: login/logout, session-based users with roles: `owner`, `editor`, `author`, `viewer`.
+- **Dashboard**: overview, posts (authors limited to their own posts), tags/categories (editors+), comments moderation (editors+), users (owners), site settings (owners), profile (all signed-in users).
+- **Email**: contact submissions sent via **PHPMailer** to Mailtrap SMTP when `MAILTRAP_USER` and `MAILTRAP_PASSWORD` are set.
 
 ## Project layout
 
-| Path                | Role                                                    |
-|---------------------|---------------------------------------------------------|
-| `public/`           | Web root (`index.php`, `router.php` for the dev server) |
-| `Http/controllers/` | Route handlers                                          |
-| `views/`            | Templates                                               |
-| `Core/`             | Router, container, helpers                              |
-| `routes.php`        | Route definitions                                       |
+| Path                  | Role |
+|-----------------------|------|
+| `public/`             | Web root (`index.php`, static assets, upload dirs) |
+| `Http/controllers/`   | Route handlers |
+| `views/`              | PHP templates |
+| `Core/`               | Router, DI container, database, helpers |
+| `routes.php`          | HTTP route map |
+| `config.php`          | DB config (env-driven) |
+| `database/migrations/`| SQL migrations applied by `database/migrate.php` |
+| `.env.example`        | Template for local configuration |
 
-## Notes
+## Troubleshooting
 
-- Run `php -S` **from the repo root** with `-t public` so paths and `BASE_PATH` resolve correctly.
-- Without Docker, point `.env` at your own MySQL instance or ignore DB until you use it in code.
+- **404 or wrong paths** — Run the built-in server from the **repo root** with `-t public`, not from inside `public/`.
+- **Contact mail not arriving** — Confirm Mailtrap credentials under **Email Testing → your sandbox → Integration → SMTP**, and check the Mailtrap inbox. Ensure `composer install` has run so PHPMailer is available.
+- **Database errors** — Verify MySQL is up, credentials in `.env` match, and migrations have been applied.
+
+## License
+
+Use and modify freely for your own projects; add a license file if you publish the repo publicly.

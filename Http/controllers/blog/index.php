@@ -88,7 +88,7 @@ if ($filterTag !== '') {
   $params[] = $filterTag;
 }
 if ($filterCategory !== '') {
-  $where[] = '`p`.`category_id` IN (SELECT `id` FROM `categories` WHERE `slug` = ? LIMIT 1)';
+  $where[] = '`p`.`category_id` = (SELECT `id` FROM `categories` WHERE `slug` = ? LIMIT 1)';
   $params[] = $filterCategory;
 }
 if ($searchQuery !== '') {

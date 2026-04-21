@@ -36,8 +36,6 @@ $icon = static function (string $name): string {
                 <p class="truncate text-xs font-medium text-stone-500">Dashboard</p>
             </div>
         </div>
-        <?php $sessionUserVariant = 'aside';
-        require base_path('views/dashboard/partials/session-user.php'); ?>
         <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard sections">
             <?php foreach ($items as $item) : ?>
                 <?php
@@ -51,88 +49,51 @@ $icon = static function (string $name): string {
                 </a>
             <?php endforeach; ?>
         </nav>
-        <div class="border-t border-stone-100 p-3 space-y-2">
-            <button type="button"
-                    data-modal-open="dashboard-confirm-modal"
-                    data-confirm-title="Sign out?"
-                    data-confirm-body="You will be signed out and returned to the sign-in page."
-                    data-confirm-label="Log out"
-                    data-confirm-variant="primary"
-                    data-confirm-redirect="<?= htmlspecialchars(blog_url('logout'), ENT_QUOTES, 'UTF-8') ?>"
-                    class="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs font-semibold text-stone-800 transition hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M10 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-                    <path d="M15 12H9"/>
-                    <path d="m17 8 4 4-4 4"/>
-                </svg>
-                Log out
-            </button>
-        </div>
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-        <header class="sticky top-0 z-40 border-b border-stone-200/90 bg-stone-100/90 backdrop-blur-md lg:hidden">
-            <div class="flex h-14 items-center justify-between gap-2 px-4">
+        <header
+                class="sticky top-0 z-40 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-stone-200/90 bg-white/95 px-4 py-2 backdrop-blur-md lg:px-6">
+            <div class="flex min-w-0 flex-1 items-center gap-3">
+                <details class="relative lg:hidden">
+                    <summary
+                            class="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white [&::-webkit-details-marker]:hidden"
+                            aria-label="Open navigation menu">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </summary>
+                    <div
+                            class="absolute left-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-900/10 ring-1 ring-stone-900/5"
+                            role="menu">
+                        <?php foreach ($items as $item) : ?>
+                            <?php $isActive = $dashboardNav === $item['key']; ?>
+                            <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"
+                               class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium <?= $isActive ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                               role="menuitem"
+                                    <?= $isActive ? 'aria-current="page"' : '' ?>>
+                                <?= $icon($item['icon']) ?>
+                                <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
+                            </a>
+                        <?php endforeach; ?>
+                        <div class="my-1 border-t border-stone-100"></div>
+                        <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
+                           class="block px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50"
+                           role="menuitem">
+                            View site
+                        </a>
+                    </div>
+                </details>
                 <a href="<?= htmlspecialchars(blog_url('dashboard'), ENT_QUOTES, 'UTF-8') ?>"
-                   class="flex min-w-0 items-center gap-2 font-semibold text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100 rounded-md">
+                   class="flex min-w-0 items-center gap-2 rounded-lg font-semibold text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white lg:hidden">
                     <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-900 text-xs font-semibold text-amber-50"
                           aria-hidden="true">M</span>
                     <span class="truncate">Dashboard</span>
                 </a>
-                <div class="flex shrink-0 items-center gap-1.5">
-                    <?php $sessionUserVariant = 'toolbar';
-                    require base_path('views/dashboard/partials/session-user.php'); ?>
-                    <details class="relative group">
-                        <summary
-                                class="flex cursor-pointer list-none items-center justify-center rounded-lg border border-stone-200 bg-white p-2 text-stone-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100 [&::-webkit-details-marker]:hidden"
-                                aria-label="Open dashboard menu">
-                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                 stroke-linecap="round" aria-hidden="true">
-                                <path d="M4 6h16M4 12h16M4 18h16"/>
-                            </svg>
-                        </summary>
-                        <div
-                                class="absolute right-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-900/10 ring-1 ring-stone-900/5"
-                                role="menu">
-                            <?php foreach ($items as $item) : ?>
-                                <?php $isActive = $dashboardNav === $item['key']; ?>
-                                <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"
-                                   class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium <?= $isActive ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
-                                   role="menuitem"
-                                        <?= $isActive ? 'aria-current="page"' : '' ?>>
-                                    <?= $icon($item['icon']) ?>
-                                    <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
-                                </a>
-                            <?php endforeach; ?>
-                            <div class="my-1 border-t border-stone-100"></div>
-                            <a href="<?= htmlspecialchars(blog_url(), ENT_QUOTES, 'UTF-8') ?>"
-                               class="block px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50"
-                               role="menuitem">
-                                View site
-                            </a>
-                            <button type="button"
-                                    role="menuitem"
-                                    data-modal-open="dashboard-confirm-modal"
-                                    data-confirm-title="Sign out?"
-                                    data-confirm-body="You will be signed out and returned to the sign-in page."
-                                    data-confirm-label="Log out"
-                                    data-confirm-variant="primary"
-                                    data-confirm-redirect="<?= htmlspecialchars(blog_url('logout'), ENT_QUOTES, 'UTF-8') ?>"
-                                    class="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-50">
-                                <svg class="h-5 w-5 shrink-0 opacity-90" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-                                     stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M10 17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-                                    <path d="M15 12H9"/>
-                                    <path d="m17 8 4 4-4 4"/>
-                                </svg>
-                                Log out
-                            </button>
-                        </div>
-                    </details>
-                </div>
+                <div class="hidden min-w-0 flex-1 lg:block" aria-hidden="true"></div>
             </div>
+            <?php require base_path('views/dashboard/partials/dashboard-user-menu.php'); ?>
         </header>
 
         <main id="main-content" tabindex="-1" class="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-10">

@@ -46,7 +46,7 @@ auth_session_bootstrap();
 require_once base_path('bootstrap.php');
 
 $router = new Router();
-$routes = require_once base_path('routes.php');
+$routes = require base_path('routes.php');
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 if ($uri === null || $uri === false || $uri === '') {
