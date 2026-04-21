@@ -322,10 +322,12 @@
             }
 
             if (id === 'modal-user-edit') {
+                setVal(modal, '[name="id"]', trigger.getAttribute('data-user-id'));
                 setVal(modal, '[name="user_name"]', trigger.getAttribute('data-user-name'));
                 setVal(modal, '[name="user_email"]', trigger.getAttribute('data-user-email'));
                 setVal(modal, '[name="user_role"]', trigger.getAttribute('data-user-role'));
-                setVal(modal, '[name="user_status"]', trigger.getAttribute('data-user-status'));
+                var uss = trigger.getAttribute('data-user-status-code');
+                setVal(modal, '[name="user_status"]', uss || trigger.getAttribute('data-user-status'));
             }
 
             if (id === 'modal-user-view') {

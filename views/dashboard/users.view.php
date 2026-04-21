@@ -4,26 +4,53 @@
  * @var string $heading
  * @var string|null $subheading
  * @var string $dashboardNav
+ * @var array<int, array<string, mixed>> $users
+ * @var string $usersUrl
+ * @var array{q: string, role: string} $filters
+ * @var string $flashSuccess
+ * @var string $flashError
+ * @var string $csrfToken
+ * @var string $redirectQuery
  */
 require_once base_path('views/dashboard/partials/head.php');
 require_once base_path('views/dashboard/partials/sidebar.php');
 
+$users = $users ?? [];
+$usersUrl = $usersUrl ?? blog_url('dashboard/users');
+$filters = $filters ?? ['q' => '', 'role' => ''];
+$csrfToken = $csrfToken ?? auth_csrf_token();
+$redirectQuery = $redirectQuery ?? '';
+$flashSuccess = $flashSuccess ?? '';
+$flashError = $flashError ?? '';
+
+$roleFilter = (string) ($filters['role'] ?? '');
+$qVal = trim((string) ($filters['q'] ?? ''));
+
 $pageActions = <<<'HTML'
-<button type="button" data-modal-open="modal-user-invite" class="inline-flex items-center justify-center rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/90 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-    Invite user
+<button type="button" data-modal-open="modal-user-add" class="inline-flex items-center justify-center rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-amber-50 shadow-sm transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/90 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+    Add user
 </button>
 HTML;
 
-$demoUsers = [
-        ['name' => 'Alex Rowan', 'email' => 'alex@example.com', 'role' => 'Owner', 'last' => 'Active now', 'status' => 'Active'],
-        ['name' => 'Jamie Liu', 'email' => 'jamie@example.com', 'role' => 'Editor', 'last' => 'Apr 18, 2026', 'status' => 'Active'],
-        ['name' => 'Riley Chen', 'email' => 'riley@example.com', 'role' => 'Author', 'last' => 'Apr 2, 2026', 'status' => 'Active'],
-        ['name' => 'Taylor Brooks', 'email' => 'taylor@example.com', 'role' => 'Viewer', 'last' => 'Mar 9, 2026', 'status' => 'Suspended'],
-];
 $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-800 shadow-sm hover:border-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white';
+
+$sessionUserId = (int) (auth_user()['id'] ?? 0);
 ?>
 
 <?php require_once base_path('views/dashboard/partials/page-header.php'); ?>
+
+<?php if ($flashSuccess !== '') : ?>
+    <div class="mb-6 rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-950 ring-1 ring-emerald-100"
+         role="status">
+        <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8') ?>
+    </div>
+<?php endif; ?>
+<?php if ($flashError !== '') : ?>
+    <div class="mb-6 rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm font-medium text-red-900 ring-1 ring-red-100"
+         role="alert">
+        <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8') ?>
+    </div>
+<?php endif; ?>
 
 <div class="grid gap-6 xl:grid-cols-12">
     <div class="xl:col-span-8">
@@ -31,19 +58,29 @@ $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs 
             <div class="flex flex-col gap-3 border-b border-stone-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                 <div>
                     <h2 class="text-sm font-semibold text-stone-900">Team</h2>
-                    <p class="mt-1 text-xs text-stone-500">Roles are illustrative until you wire authentication.</p>
+                    <p class="mt-1 text-xs text-stone-500">Owners can add users and change roles. At least one owner must stay active.</p>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <form method="get" action="<?= htmlspecialchars($usersUrl, ENT_QUOTES, 'UTF-8') ?>"
+                      class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <label class="sr-only" for="user-search">Search</label>
+                    <input type="search" id="user-search" name="q" value="<?= htmlspecialchars($qVal, ENT_QUOTES, 'UTF-8') ?>"
+                           placeholder="Search name or email"
+                           class="min-w-[12rem] rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-amber-400/80 focus:outline-none focus:ring-2 focus:ring-amber-500/30"/>
+                    <button type="submit"
+                            class="inline-flex items-center justify-center rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-stone-800 hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80">
+                        Search
+                    </button>
                     <label class="sr-only" for="user-role-filter">Role</label>
-                    <select id="user-role-filter"
-                            class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> sm:w-auto sm:min-w-[10.5rem]">
-                        <option>All roles</option>
-                        <option>Owner</option>
-                        <option>Editor</option>
-                        <option>Author</option>
-                        <option>Viewer</option>
+                    <select id="user-role-filter" name="role"
+                            class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> sm:w-auto sm:min-w-[10.5rem]"
+                            onchange="this.form.submit()">
+                        <option value="" <?= $roleFilter === '' ? 'selected' : '' ?>>All roles</option>
+                        <option value="owner" <?= $roleFilter === 'owner' ? 'selected' : '' ?>>Owner</option>
+                        <option value="editor" <?= $roleFilter === 'editor' ? 'selected' : '' ?>>Editor</option>
+                        <option value="author" <?= $roleFilter === 'author' ? 'selected' : '' ?>>Author</option>
+                        <option value="viewer" <?= $roleFilter === 'viewer' ? 'selected' : '' ?>>Viewer</option>
                     </select>
-                </div>
+                </form>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-stone-100 text-left text-sm">
@@ -57,30 +94,40 @@ $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs 
                     </tr>
                     </thead>
                     <tbody class="divide-y divide-stone-100 bg-white">
-                    <?php foreach ($demoUsers as $u) : ?>
+                    <?php if ($users === []) : ?>
+                        <tr>
+                            <td colspan="5" class="px-5 py-10 text-center text-sm text-stone-600">No users match these filters.</td>
+                        </tr>
+                    <?php endif; ?>
+                    <?php foreach ($users as $u) : ?>
                         <?php
-                        $roleClass = match ($u['role']) {
-                            'Owner' => 'bg-stone-900 text-amber-50 ring-stone-900/10',
-                            'Editor' => 'bg-amber-50 text-amber-950 ring-amber-200/80',
-                            'Author' => 'bg-sky-50 text-sky-950 ring-sky-200/80',
-                            default => 'bg-stone-100 text-stone-800 ring-stone-200/80',
+                        $uid = (int) ($u['id'] ?? 0);
+                        $roleKey = (string) ($u['role'] ?? 'author');
+                        $roleClass = match ($roleKey) {
+                          'owner' => 'bg-stone-900 text-amber-50 ring-stone-900/10',
+                          'editor' => 'bg-amber-50 text-amber-950 ring-amber-200/80',
+                          'author' => 'bg-sky-50 text-sky-950 ring-sky-200/80',
+                          default => 'bg-stone-100 text-stone-800 ring-stone-200/80',
                         };
-                        $statusClass = $u['status'] === 'Active'
-                                ? 'text-emerald-800'
-                                : 'text-red-800';
-                        $nm = htmlspecialchars($u['name'], ENT_QUOTES, 'UTF-8');
-                        $em = htmlspecialchars($u['email'], ENT_QUOTES, 'UTF-8');
-                        $rl = htmlspecialchars($u['role'], ENT_QUOTES, 'UTF-8');
-                        $la = htmlspecialchars($u['last'], ENT_QUOTES, 'UTF-8');
-                        $st = htmlspecialchars($u['status'], ENT_QUOTES, 'UTF-8');
-                        $delBody = htmlspecialchars('Remove ' . $u['name'] . ' from this workspace? Sessions will be revoked.', ENT_QUOTES, 'UTF-8');
-                        $resetBody = htmlspecialchars('Send a password reset link to ' . $u['email'] . '?', ENT_QUOTES, 'UTF-8');
+                        $statusKey = (string) ($u['status'] ?? 'active');
+                        $statusClass = $statusKey === 'active'
+                          ? 'text-emerald-800'
+                          : 'text-red-800';
+                        $nm = htmlspecialchars((string) ($u['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $em = htmlspecialchars((string) ($u['email'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $rl = htmlspecialchars((string) ($u['role_display'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $la = htmlspecialchars((string) ($u['last_login_display'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $st = htmlspecialchars((string) ($u['status_display'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $roleRaw = htmlspecialchars($roleKey, ENT_QUOTES, 'UTF-8');
+                        $statusCode = htmlspecialchars($statusKey, ENT_QUOTES, 'UTF-8');
+                        $delBody = htmlspecialchars('Remove ' . (string) ($u['name'] ?? 'user') . ' from the site? This cannot be undone.', ENT_QUOTES, 'UTF-8');
+                        $initials = htmlspecialchars((string) ($u['initials'] ?? '?'), ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr class="hover:bg-stone-50/60">
                             <th scope="row" class="px-5 py-4">
                                 <div class="flex items-center gap-3">
                                     <span class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-stone-200 to-stone-300 text-sm font-semibold text-stone-900 ring-2 ring-white shadow-sm"
-                                          aria-hidden="true"><?= htmlspecialchars(strtoupper(substr($u['name'], 0, 1)), ENT_QUOTES, 'UTF-8') ?></span>
+                                          aria-hidden="true"><?= $initials ?></span>
                                     <div class="min-w-0">
                                         <p class="truncate font-semibold text-stone-900"><?= $nm ?></p>
                                         <p class="truncate text-xs text-stone-500"><?= $em ?></p>
@@ -113,26 +160,29 @@ $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs 
                                     </button>
                                     <button type="button" class="<?= $actionBtn ?>"
                                             data-modal-open="modal-user-edit"
+                                            data-user-id="<?= (string) $uid ?>"
                                             data-user-name="<?= $nm ?>"
                                             data-user-email="<?= $em ?>"
-                                            data-user-role="<?= $rl ?>"
-                                            data-user-status="<?= $st ?>">Edit
-                                    </button>
-                                    <button type="button" class="<?= $actionBtn ?>"
-                                            data-modal-open="dashboard-confirm-modal"
-                                            data-confirm-title="Send reset link?"
-                                            data-confirm-body="<?= $resetBody ?>"
-                                            data-confirm-label="Send email"
-                                            data-confirm-variant="primary">Reset link
+                                            data-user-role="<?= $roleRaw ?>"
+                                            data-user-status-code="<?= $statusCode ?>">Edit
                                     </button>
                                     <button type="button"
-                                            class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 shadow-sm hover:border-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                                            class="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 shadow-sm hover:border-red-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white<?= $uid === $sessionUserId ? ' cursor-not-allowed opacity-50' : '' ?>"
                                             data-modal-open="dashboard-confirm-modal"
                                             data-confirm-title="Remove user?"
                                             data-confirm-body="<?= $delBody ?>"
-                                            data-confirm-label="Remove user">Delete
+                                            data-confirm-label="Remove"
+                                            data-confirm-submit-form="form-delete-user-<?= $uid ?>"
+                                            <?= $uid === $sessionUserId ? 'disabled aria-disabled="true" title="You cannot remove your own account"' : '' ?>
+                                    >Delete
                                     </button>
                                 </div>
+                                <form id="form-delete-user-<?= $uid ?>" method="post" action="<?= htmlspecialchars($usersUrl, ENT_QUOTES, 'UTF-8') ?>" class="hidden">
+                                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"/>
+                                    <input type="hidden" name="_action" value="delete"/>
+                                    <input type="hidden" name="_redirect_query" value="<?= htmlspecialchars($redirectQuery, ENT_QUOTES, 'UTF-8') ?>"/>
+                                    <input type="hidden" name="id" value="<?= $uid ?>"/>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -148,7 +198,7 @@ $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs 
             <dl class="mt-4 space-y-3 text-sm">
                 <div class="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200/80">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">Owner</dt>
-                    <dd class="mt-1 text-stone-700">Full access, billing, destructive actions.</dd>
+                    <dd class="mt-1 text-stone-700">Full access, including user management.</dd>
                 </div>
                 <div class="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200/80">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">Editor</dt>
@@ -156,11 +206,11 @@ $actionBtn = 'rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs 
                 </div>
                 <div class="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200/80">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">Author</dt>
-                    <dd class="mt-1 text-stone-700">Create/edit own posts, upload media.</dd>
+                    <dd class="mt-1 text-stone-700">Create and edit posts.</dd>
                 </div>
                 <div class="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200/80">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">Viewer</dt>
-                    <dd class="mt-1 text-stone-700">Read-only dashboard previews.</dd>
+                    <dd class="mt-1 text-stone-700">Dashboard access without content changes (where applicable).</dd>
                 </div>
             </dl>
         </div>

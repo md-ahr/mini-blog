@@ -661,6 +661,36 @@ function auth_require_user(): void
   redirect(blog_url('login') . '?next=' . rawurlencode($next));
 }
 
+/**
+ * Dashboard routes that manage accounts (e.g. users list) — owner role only.
+ */
+function auth_require_owner(): void
+{
+  auth_require_user();
+  $u = auth_user();
+  if (($u['role'] ?? '') !== 'owner') {
+    abort(403);
+  }
+}
+
+/**
+ * @return int Number of users with role owner (any status).
+ */
+function blog_users_count_owners(\Core\Database $db): int
+{
+  return (int) ($db->query('SELECT COUNT(*) AS `n` FROM `users` WHERE `role` = \'owner\'')->find()['n'] ?? 0);
+}
+
+/**
+ * @return int Users who are owners and active (can sign in).
+ */
+function blog_users_count_active_owners(\Core\Database $db): int
+{
+  return (int) ($db->query(
+    'SELECT COUNT(*) AS `n` FROM `users` WHERE `role` = \'owner\' AND `status` = \'active\''
+  )->find()['n'] ?? 0);
+}
+
 function auth_logout(): void
 {
   auth_session_bootstrap();
