@@ -3,9 +3,11 @@ $path = blog_current_path();
 $isHome = $path === '/' || $path === '';
 $isAbout = $path === '/about';
 $isBlog = $path === '/blogs' || str_starts_with($path, '/blogs/');
+$isLogin = $path === '/login';
 $homeUrl = blog_url();
 $aboutUrl = blog_url('about');
 $blogUrl = blog_url('blogs');
+$loginUrl = blog_url('login');
 
 $linkBase = 'inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50';
 $linkIdle = 'text-stone-600 hover:bg-stone-100/80 hover:text-stone-900';
@@ -40,6 +42,11 @@ $linkActive = 'bg-stone-200/70 text-stone-900';
                 <?= $isAbout ? 'aria-current="page"' : '' ?>>
                 About
             </a>
+            <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>"
+               class="<?= $linkBase ?> <?= $isLogin ? $linkActive : $linkIdle ?>"
+                <?= $isLogin ? 'aria-current="page"' : '' ?>>
+                Sign in
+            </a>
         </nav>
 
         <div class="relative md:hidden">
@@ -72,6 +79,12 @@ $linkActive = 'bg-stone-200/70 text-stone-900';
                        role="menuitem"
                         <?= $isAbout ? 'aria-current="page"' : '' ?>>
                         About
+                    </a>
+                    <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>"
+                       class="block px-4 py-2.5 text-sm font-medium <?= $isLogin ? 'bg-stone-50 text-stone-900' : 'text-stone-700 hover:bg-stone-50' ?> focus:outline-none focus-visible:bg-stone-50"
+                       role="menuitem"
+                        <?= $isLogin ? 'aria-current="page"' : '' ?>>
+                        Sign in
                     </a>
                 </div>
             </details>

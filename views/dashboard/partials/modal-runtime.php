@@ -1,0 +1,379 @@
+<?php
+/**
+ * Global confirm dialog + dashboard modal behavior (open/close, ESC, backdrop, scroll lock).
+ * Expects modal shells to use data-dashboard-modal on the outer fixed wrapper.
+ */
+?>
+<div id="dashboard-confirm-modal"
+     data-dashboard-modal
+     class="fixed inset-0 z-[120] hidden"
+     aria-hidden="true">
+    <div data-modal-backdrop class="absolute inset-0 bg-stone-900/45 backdrop-blur-[2px]"></div>
+    <div class="relative flex min-h-full items-end justify-center p-4 sm:items-center sm:p-6">
+        <div role="dialog"
+             aria-modal="true"
+             aria-labelledby="dashboard-confirm-title"
+             tabindex="-1"
+             class="w-full max-w-md rounded-2xl bg-white shadow-2xl shadow-stone-900/20 ring-1 ring-stone-900/10 outline-none">
+            <div class="border-b border-stone-100 px-5 py-4">
+                <h2 id="dashboard-confirm-title" class="text-base font-semibold text-stone-900">Confirm</h2>
+            </div>
+            <div class="px-5 py-4">
+                <div id="dashboard-confirm-body" class="text-sm leading-relaxed text-stone-600"></div>
+            </div>
+            <div class="flex flex-col-reverse gap-2 border-t border-stone-100 px-5 py-4 sm:flex-row sm:justify-end">
+                <button type="button"
+                        data-modal-close
+                        class="inline-flex w-full items-center justify-center rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 shadow-sm transition hover:border-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:w-auto">
+                    Cancel
+                </button>
+                <button type="button"
+                        id="dashboard-confirm-action"
+                        class="inline-flex w-full items-center justify-center rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:w-auto">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var openCount = 0;
+        var lastFocus = null;
+        var lastConfirmTrigger = null;
+
+        function modalRoot(el) {
+            return el && el.closest ? el.closest('[data-dashboard-modal]') : null;
+        }
+
+        function isHidden(modal) {
+            return !modal || modal.classList.contains('hidden');
+        }
+
+        function openModal(modal) {
+            if (!modal || !isHidden(modal)) {
+                return;
+            }
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            openCount += 1;
+            document.documentElement.classList.add('overflow-hidden');
+            lastFocus = document.activeElement;
+            var dialog = modal.querySelector('[role="dialog"]');
+            if (dialog) {
+                dialog.focus();
+            }
+        }
+
+        function closeModal(modal) {
+            if (!modal || isHidden(modal)) {
+                return;
+            }
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            if (modal.id === 'dashboard-confirm-modal') {
+                lastConfirmTrigger = null;
+            }
+            openCount = Math.max(0, openCount - 1);
+            if (openCount === 0) {
+                document.documentElement.classList.remove('overflow-hidden');
+            }
+            if (lastFocus && typeof lastFocus.focus === 'function') {
+                lastFocus.focus();
+            }
+        }
+
+        function textOr(el, attr, fallback) {
+            var v = el.getAttribute(attr);
+            return v !== null && v !== '' ? v : (fallback || '');
+        }
+
+        function populateConfirm(trigger) {
+            var title = textOr(trigger, 'data-confirm-title', 'Are you sure?');
+            var body = textOr(trigger, 'data-confirm-body', 'This action cannot be undone.');
+            var label = textOr(trigger, 'data-confirm-label', 'Confirm');
+            var variant = textOr(trigger, 'data-confirm-variant', 'danger');
+
+            var titleEl = document.getElementById('dashboard-confirm-title');
+            var bodyEl = document.getElementById('dashboard-confirm-body');
+            var actionEl = document.getElementById('dashboard-confirm-action');
+            if (titleEl) {
+                titleEl.textContent = title;
+            }
+            if (bodyEl) {
+                bodyEl.textContent = body;
+            }
+            if (actionEl) {
+                actionEl.textContent = label;
+                actionEl.classList.remove('bg-red-700', 'hover:bg-red-800', 'bg-stone-900', 'hover:bg-stone-800');
+                if (variant === 'primary') {
+                    actionEl.classList.add('bg-stone-900', 'hover:bg-stone-800');
+                } else {
+                    actionEl.classList.add('bg-red-700', 'hover:bg-red-800');
+                }
+            }
+        }
+
+        function setVal(modal, selector, value) {
+            var el = modal.querySelector(selector);
+            if (!el) {
+                return;
+            }
+            el.value = value != null ? value : '';
+        }
+
+        function setText(modal, selector, value) {
+            var el = modal.querySelector(selector);
+            if (!el) {
+                return;
+            }
+            el.textContent = value != null ? value : '';
+        }
+
+        function setPostFeaturedImage(modal, url) {
+            var wrap = modal.querySelector('[data-view="post-image-wrap"]');
+            var img = modal.querySelector('[data-view="post-image"]');
+            if (!wrap || !img) {
+                return;
+            }
+            var u = url != null ? String(url).trim() : '';
+            if (u !== '') {
+                img.src = u;
+                img.alt = '';
+                wrap.classList.remove('hidden');
+            } else {
+                img.removeAttribute('src');
+                wrap.classList.add('hidden');
+            }
+        }
+
+        function paintSwatch(el, hex) {
+            if (!el) {
+                return;
+            }
+            var h = hex != null && String(hex).trim() !== '' ? String(hex).trim() : '#78716c';
+            el.style.backgroundColor = h;
+        }
+
+        function prefillModal(trigger, id) {
+            var modal = document.getElementById(id);
+            if (!modal) {
+                return;
+            }
+
+            if (id === 'modal-post-edit') {
+                setVal(modal, '[name="post_title"]', trigger.getAttribute('data-post-title'));
+                setVal(modal, '[name="post_slug"]', trigger.getAttribute('data-post-slug'));
+                setVal(modal, '[name="post_status"]', trigger.getAttribute('data-post-status'));
+                setVal(modal, '[name="post_author"]', trigger.getAttribute('data-post-author'));
+                setVal(modal, '[name="post_tag"]', trigger.getAttribute('data-post-tag'));
+                setVal(modal, '[name="post_category"]', trigger.getAttribute('data-post-category'));
+                setVal(modal, '[name="post_excerpt"]', trigger.getAttribute('data-post-excerpt'));
+                setVal(modal, '[name="post_image_url"]', trigger.getAttribute('data-post-image-url'));
+                var f = modal.querySelector('#post-edit-image-file');
+                if (f) {
+                    f.value = '';
+                }
+                var pv = modal.querySelector('#post-edit-image-preview');
+                var ph = modal.querySelector('#post-edit-image-placeholder');
+                var u = trigger.getAttribute('data-post-image-url');
+                if (pv && ph) {
+                    if (u) {
+                        pv.src = u;
+                        pv.classList.remove('hidden');
+                        ph.classList.add('hidden');
+                    } else {
+                        pv.removeAttribute('src');
+                        pv.classList.add('hidden');
+                        ph.classList.remove('hidden');
+                    }
+                }
+            }
+
+            if (id === 'modal-post-view') {
+                setText(modal, '[data-view="post-title"]', trigger.getAttribute('data-post-title'));
+                setText(modal, '[data-view="post-status"]', trigger.getAttribute('data-post-status'));
+                setText(modal, '[data-view="post-author"]', trigger.getAttribute('data-post-author'));
+                setText(modal, '[data-view="post-tag"]', trigger.getAttribute('data-post-tag'));
+                setText(modal, '[data-view="post-category"]', trigger.getAttribute('data-post-category'));
+                setText(modal, '[data-view="post-updated"]', trigger.getAttribute('data-post-updated'));
+                setText(modal, '[data-view="post-excerpt"]', trigger.getAttribute('data-post-excerpt'));
+                setPostFeaturedImage(modal, trigger.getAttribute('data-post-image-url'));
+            }
+
+            if (id === 'modal-tag-edit') {
+                setVal(modal, '[name="tag_name"]', trigger.getAttribute('data-tag-name'));
+                setVal(modal, '[name="tag_slug"]', trigger.getAttribute('data-tag-slug'));
+                setVal(modal, '[name="tag_posts"]', trigger.getAttribute('data-tag-posts'));
+                setVal(modal, '[name="tag_color"]', trigger.getAttribute('data-tag-color'));
+            }
+
+            if (id === 'modal-tag-view') {
+                setText(modal, '[data-view="tag-name"]', trigger.getAttribute('data-tag-name'));
+                setText(modal, '[data-view="tag-slug"]', trigger.getAttribute('data-tag-slug'));
+                setText(modal, '[data-view="tag-posts"]', trigger.getAttribute('data-tag-posts'));
+                var th = trigger.getAttribute('data-tag-color');
+                setText(modal, '[data-view="tag-color-hex"]', th || '—');
+                paintSwatch(modal.querySelector('[data-view="tag-color-swatch"]'), th);
+            }
+
+            if (id === 'modal-category-edit') {
+                setVal(modal, '[name="category_name"]', trigger.getAttribute('data-cat-name'));
+                setVal(modal, '[name="category_slug"]', trigger.getAttribute('data-cat-slug'));
+                setVal(modal, '[name="category_posts"]', trigger.getAttribute('data-cat-posts'));
+                setVal(modal, '[name="category_description"]', trigger.getAttribute('data-cat-description'));
+                setVal(modal, '[name="category_color"]', trigger.getAttribute('data-cat-color'));
+            }
+
+            if (id === 'modal-category-view') {
+                setText(modal, '[data-view="cat-name"]', trigger.getAttribute('data-cat-name'));
+                setText(modal, '[data-view="cat-slug"]', trigger.getAttribute('data-cat-slug'));
+                setText(modal, '[data-view="cat-posts"]', trigger.getAttribute('data-cat-posts'));
+                setText(modal, '[data-view="cat-description"]', trigger.getAttribute('data-cat-description'));
+                var ch = trigger.getAttribute('data-cat-color');
+                setText(modal, '[data-view="cat-color-hex"]', ch || '—');
+                paintSwatch(modal.querySelector('[data-view="cat-color-swatch"]'), ch);
+            }
+
+            if (id === 'modal-comment-edit') {
+                setVal(modal, '[name="comment_author"]', trigger.getAttribute('data-comment-author'));
+                setVal(modal, '[name="comment_email"]', trigger.getAttribute('data-comment-email'));
+                setVal(modal, '[name="comment_post"]', trigger.getAttribute('data-comment-post'));
+                setVal(modal, '[name="comment_state"]', trigger.getAttribute('data-comment-state'));
+                setVal(modal, '[name="comment_body"]', trigger.getAttribute('data-comment-body'));
+            }
+
+            if (id === 'modal-comment-view') {
+                setText(modal, '[data-view="comment-author"]', trigger.getAttribute('data-comment-author'));
+                setText(modal, '[data-view="comment-email"]', trigger.getAttribute('data-comment-email'));
+                setText(modal, '[data-view="comment-post"]', trigger.getAttribute('data-comment-post'));
+                setText(modal, '[data-view="comment-state"]', trigger.getAttribute('data-comment-state'));
+                setText(modal, '[data-view="comment-when"]', trigger.getAttribute('data-comment-when'));
+                setText(modal, '[data-view="comment-body"]', trigger.getAttribute('data-comment-body'));
+            }
+
+            if (id === 'modal-user-edit') {
+                setVal(modal, '[name="user_name"]', trigger.getAttribute('data-user-name'));
+                setVal(modal, '[name="user_email"]', trigger.getAttribute('data-user-email'));
+                setVal(modal, '[name="user_role"]', trigger.getAttribute('data-user-role'));
+                setVal(modal, '[name="user_status"]', trigger.getAttribute('data-user-status'));
+            }
+
+            if (id === 'modal-user-view') {
+                setText(modal, '[data-view="user-name"]', trigger.getAttribute('data-user-name'));
+                setText(modal, '[data-view="user-email"]', trigger.getAttribute('data-user-email'));
+                setText(modal, '[data-view="user-role"]', trigger.getAttribute('data-user-role'));
+                setText(modal, '[data-view="user-last"]', trigger.getAttribute('data-user-last'));
+                setText(modal, '[data-view="user-status"]', trigger.getAttribute('data-user-status'));
+            }
+
+            if (id === 'modal-setting-edit') {
+                setVal(modal, '[name="setting_site_title"]', trigger.getAttribute('data-site-title'));
+                setVal(modal, '[name="setting_tagline"]', trigger.getAttribute('data-tagline'));
+                setVal(modal, '[name="setting_posts_per_page"]', trigger.getAttribute('data-posts-per-page'));
+            }
+
+            if (id === 'modal-setting-view') {
+                setText(modal, '[data-view="setting-site-title"]', trigger.getAttribute('data-site-title'));
+                setText(modal, '[data-view="setting-tagline"]', trigger.getAttribute('data-tagline'));
+                setText(modal, '[data-view="setting-posts-per-page"]', trigger.getAttribute('data-posts-per-page'));
+                setText(modal, '[data-view="setting-date-format"]', trigger.getAttribute('data-date-format'));
+                setText(modal, '[data-view="setting-rss"]', trigger.getAttribute('data-rss'));
+            }
+
+            if (id === 'modal-profile-edit') {
+                setVal(modal, '[name="profile_name"]', trigger.getAttribute('data-profile-name'));
+                setVal(modal, '[name="profile_email"]', trigger.getAttribute('data-profile-email'));
+                setVal(modal, '[name="profile_bio"]', trigger.getAttribute('data-profile-bio'));
+            }
+
+            if (id === 'modal-profile-view') {
+                setText(modal, '[data-view="profile-name"]', trigger.getAttribute('data-profile-name'));
+                setText(modal, '[data-view="profile-email"]', trigger.getAttribute('data-profile-email'));
+                setText(modal, '[data-view="profile-role"]', trigger.getAttribute('data-profile-role'));
+                setText(modal, '[data-view="profile-bio"]', trigger.getAttribute('data-profile-bio'));
+            }
+
+            if (id === 'modal-activity-view') {
+                setText(modal, '[data-view="activity-title"]', trigger.getAttribute('data-activity-title'));
+                setText(modal, '[data-view="activity-meta"]', trigger.getAttribute('data-activity-meta'));
+                setText(modal, '[data-view="activity-badge"]', trigger.getAttribute('data-activity-badge'));
+            }
+
+            if (id === 'modal-activity-edit') {
+                setVal(modal, '[name="activity_title"]', trigger.getAttribute('data-activity-title'));
+                setVal(modal, '[name="activity_meta"]', trigger.getAttribute('data-activity-meta'));
+                setVal(modal, '[name="activity_badge"]', trigger.getAttribute('data-activity-badge'));
+            }
+
+            if (id === 'modal-stat-view') {
+                setText(modal, '[data-view="stat-label"]', trigger.getAttribute('data-stat-label'));
+                setText(modal, '[data-view="stat-value"]', trigger.getAttribute('data-stat-value'));
+                setText(modal, '[data-view="stat-hint"]', trigger.getAttribute('data-stat-hint'));
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.id === 'dashboard-confirm-action') {
+                e.preventDefault();
+                var confirmModal = document.getElementById('dashboard-confirm-modal');
+                var redirect = lastConfirmTrigger ? lastConfirmTrigger.getAttribute('data-confirm-redirect') : null;
+                closeModal(confirmModal);
+                lastConfirmTrigger = null;
+                if (redirect) {
+                    window.location.href = redirect;
+                }
+                return;
+            }
+
+            var openBtn = e.target.closest('[data-modal-open]');
+            if (openBtn) {
+                e.preventDefault();
+                var id = openBtn.getAttribute('data-modal-open');
+                if (!id) {
+                    return;
+                }
+                if (id === 'dashboard-confirm-modal') {
+                    lastConfirmTrigger = openBtn;
+                    populateConfirm(openBtn);
+                } else {
+                    prefillModal(openBtn, id);
+                }
+                var modal = document.getElementById(id);
+                if (!modal) {
+                    return;
+                }
+                openModal(modal);
+                return;
+            }
+
+            var closeBtn = e.target.closest('[data-modal-close]');
+            if (closeBtn) {
+                var modalToClose = modalRoot(closeBtn);
+                if (modalToClose) {
+                    closeModal(modalToClose);
+                }
+                return;
+            }
+
+            if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-modal-backdrop')) {
+                var m = modalRoot(e.target);
+                if (m) {
+                    closeModal(m);
+                }
+            }
+        }, true);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') {
+                return;
+            }
+            var stack = Array.prototype.slice.call(document.querySelectorAll('[data-dashboard-modal]:not(.hidden)'));
+            if (!stack.length) {
+                return;
+            }
+            closeModal(stack[stack.length - 1]);
+        });
+    })();
+</script>

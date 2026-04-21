@@ -1,6 +1,7 @@
 <?php
 $pageTitle = $pageTitle ?? 'Mini Blog';
 $metaDescription = $metaDescription ?? '';
+$pageRobots = $pageRobots ?? '';
 ?>
 <!doctype html>
 <html lang="en" class="scroll-smooth">
@@ -10,6 +11,9 @@ $metaDescription = $metaDescription ?? '';
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
     <?php if ($metaDescription !== '') : ?>
         <meta name="description" content="<?= htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8') ?>">
+    <?php endif; ?>
+    <?php if ($pageRobots !== '') : ?>
+        <meta name="robots" content="<?= htmlspecialchars($pageRobots, ENT_QUOTES, 'UTF-8') ?>">
     <?php endif; ?>
     <link rel="preconnect" href="https://rsms.me/"/>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css"/>
