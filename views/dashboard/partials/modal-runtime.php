@@ -163,43 +163,68 @@
             }
 
             if (id === 'modal-post-edit') {
-                setVal(modal, '[name="post_title"]', trigger.getAttribute('data-post-title'));
-                setVal(modal, '[name="post_slug"]', trigger.getAttribute('data-post-slug'));
-                setVal(modal, '[name="post_status"]', trigger.getAttribute('data-post-status'));
-                setVal(modal, '[name="post_author"]', trigger.getAttribute('data-post-author'));
-                setVal(modal, '[name="post_tag"]', trigger.getAttribute('data-post-tag'));
-                setVal(modal, '[name="post_category"]', trigger.getAttribute('data-post-category'));
-                setVal(modal, '[name="post_excerpt"]', trigger.getAttribute('data-post-excerpt'));
-                setVal(modal, '[name="post_image_url"]', trigger.getAttribute('data-post-image-url'));
-                var f = modal.querySelector('#post-edit-image-file');
-                if (f) {
-                    f.value = '';
-                }
-                var pv = modal.querySelector('#post-edit-image-preview');
-                var ph = modal.querySelector('#post-edit-image-placeholder');
-                var u = trigger.getAttribute('data-post-image-url');
-                if (pv && ph) {
-                    if (u) {
-                        pv.src = u;
-                        pv.classList.remove('hidden');
-                        ph.classList.add('hidden');
-                    } else {
-                        pv.removeAttribute('src');
-                        pv.classList.add('hidden');
-                        ph.classList.remove('hidden');
+                var editPayloadId = trigger.getAttribute('data-post-payload');
+                var editScript = editPayloadId ? document.getElementById(editPayloadId) : null;
+                if (editScript && editScript.textContent) {
+                    try {
+                        var ed = JSON.parse(editScript.textContent);
+                        setVal(modal, '[name="id"]', ed.id != null ? String(ed.id) : '');
+                        setVal(modal, '[name="title"]', ed.title || '');
+                        setVal(modal, '[name="slug"]', ed.slug || '');
+                        setVal(modal, '[name="status"]', ed.status || 'draft');
+                        setVal(modal, '[name="user_id"]', ed.user_id != null ? String(ed.user_id) : '');
+                        setVal(modal, '[name="category_id"]', ed.category_id != null && ed.category_id !== '' ? String(ed.category_id) : '');
+                        setVal(modal, '[name="tags"]', ed.tags || '');
+                        setVal(modal, '[name="excerpt"]', ed.excerpt || '');
+                        setVal(modal, '[name="content_body"]', ed.content_body || '');
+                        setVal(modal, '[name="reading_minutes"]', ed.reading_minutes != null && ed.reading_minutes !== '' ? String(ed.reading_minutes) : '');
+                        setVal(modal, '[name="published_at"]', ed.published_at || '');
+                        setVal(modal, '[name="scheduled_at"]', ed.scheduled_at || '');
+                        var urlIn = modal.querySelector('#post-edit-image-url');
+                        if (urlIn) {
+                            urlIn.value = ed.featured_image_url || '';
+                        }
+                        var f = modal.querySelector('#post-edit-image-file');
+                        if (f) {
+                            f.value = '';
+                        }
+                        var pv = modal.querySelector('#post-edit-image-preview');
+                        var ph = modal.querySelector('#post-edit-image-placeholder');
+                        var u = ed.featured_image_url || '';
+                        if (pv && ph) {
+                            if (u) {
+                                pv.src = u;
+                                pv.classList.remove('hidden');
+                                ph.classList.add('hidden');
+                            } else {
+                                pv.removeAttribute('src');
+                                pv.classList.add('hidden');
+                                ph.classList.remove('hidden');
+                            }
+                        }
+                    } catch (err) {
                     }
                 }
             }
 
             if (id === 'modal-post-view') {
-                setText(modal, '[data-view="post-title"]', trigger.getAttribute('data-post-title'));
-                setText(modal, '[data-view="post-status"]', trigger.getAttribute('data-post-status'));
-                setText(modal, '[data-view="post-author"]', trigger.getAttribute('data-post-author'));
-                setText(modal, '[data-view="post-tag"]', trigger.getAttribute('data-post-tag'));
-                setText(modal, '[data-view="post-category"]', trigger.getAttribute('data-post-category'));
-                setText(modal, '[data-view="post-updated"]', trigger.getAttribute('data-post-updated'));
-                setText(modal, '[data-view="post-excerpt"]', trigger.getAttribute('data-post-excerpt'));
-                setPostFeaturedImage(modal, trigger.getAttribute('data-post-image-url'));
+                var viewPayloadId = trigger.getAttribute('data-post-payload');
+                var viewScript = viewPayloadId ? document.getElementById(viewPayloadId) : null;
+                if (viewScript && viewScript.textContent) {
+                    try {
+                        var vd = JSON.parse(viewScript.textContent);
+                        setText(modal, '[data-view="post-title"]', vd.title || '—');
+                        setText(modal, '[data-view="post-status"]', vd.status_label || '—');
+                        setText(modal, '[data-view="post-author"]', vd.author_name || '—');
+                        setText(modal, '[data-view="post-tag"]', vd.tags || '—');
+                        setText(modal, '[data-view="post-category"]', vd.category_name || '—');
+                        setText(modal, '[data-view="post-updated"]', vd.updated || '—');
+                        setText(modal, '[data-view="post-excerpt"]', vd.excerpt || '—');
+                        setText(modal, '[data-view="post-slug"]', vd.slug || '—');
+                        setPostFeaturedImage(modal, vd.featured_image_url || '');
+                    } catch (err2) {
+                    }
+                }
             }
 
             if (id === 'modal-tag-edit') {
@@ -261,20 +286,39 @@
             }
 
             if (id === 'modal-comment-edit') {
-                setVal(modal, '[name="comment_author"]', trigger.getAttribute('data-comment-author'));
-                setVal(modal, '[name="comment_email"]', trigger.getAttribute('data-comment-email'));
-                setVal(modal, '[name="comment_post"]', trigger.getAttribute('data-comment-post'));
-                setVal(modal, '[name="comment_state"]', trigger.getAttribute('data-comment-state'));
-                setVal(modal, '[name="comment_body"]', trigger.getAttribute('data-comment-body'));
+                var payloadCm = trigger.getAttribute('data-comment-payload');
+                if (payloadCm) {
+                    try {
+                        var cd = JSON.parse(payloadCm);
+                        setVal(modal, '[name="id"]', cd.id != null ? String(cd.id) : '');
+                        var postTitleRo = modal.querySelector('[data-readonly-post-title]');
+                        if (postTitleRo) {
+                            postTitleRo.textContent = cd.post_title || '—';
+                        }
+                        setVal(modal, '[name="author_name"]', cd.author_name || '');
+                        setVal(modal, '[name="author_email"]', cd.author_email || '');
+                        setVal(modal, '[name="body"]', cd.body || '');
+                        setVal(modal, '[name="status"]', cd.status || 'pending');
+                    } catch (errCm) {
+                    }
+                }
             }
 
             if (id === 'modal-comment-view') {
-                setText(modal, '[data-view="comment-author"]', trigger.getAttribute('data-comment-author'));
-                setText(modal, '[data-view="comment-email"]', trigger.getAttribute('data-comment-email'));
-                setText(modal, '[data-view="comment-post"]', trigger.getAttribute('data-comment-post'));
-                setText(modal, '[data-view="comment-state"]', trigger.getAttribute('data-comment-state'));
-                setText(modal, '[data-view="comment-when"]', trigger.getAttribute('data-comment-when'));
-                setText(modal, '[data-view="comment-body"]', trigger.getAttribute('data-comment-body'));
+                var payloadCv = trigger.getAttribute('data-comment-payload');
+                if (payloadCv) {
+                    try {
+                        var cv = JSON.parse(payloadCv);
+                        var stRaw = cv.status || '';
+                        var stLabel = stRaw === 'pending' ? 'Pending' : stRaw === 'approved' ? 'Approved' : stRaw === 'spam' ? 'Spam' : stRaw === 'rejected' ? 'Rejected' : stRaw;
+                        setText(modal, '[data-view="comment-author"]', cv.author_name || '—');
+                        setText(modal, '[data-view="comment-email"]', cv.author_email || '—');
+                        setText(modal, '[data-view="comment-post"]', cv.post_title || '—');
+                        setText(modal, '[data-view="comment-state"]', stLabel || '—');
+                        setText(modal, '[data-view="comment-body"]', cv.body || '—');
+                    } catch (errCv) {
+                    }
+                }
             }
 
             if (id === 'modal-user-edit') {

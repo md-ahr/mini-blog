@@ -5,8 +5,9 @@ require_once base_path('views/partials/head.php');
 require_once base_path('views/partials/navbar.php');
 ?>
 
-<main id="main-content" tabindex="-1" class="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-24 pt-16 text-center sm:px-6 lg:px-8">
-    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-stone-500">404</p>
+<main id="main-content" tabindex="-1"
+      class="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 pb-24 pt-16 text-center sm:px-6 lg:px-8">
+    <p class="text-7xl font-semibold uppercase tracking-[0.2em] text-stone-500">404</p>
     <h1 class="font-editorial mt-4 text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
         This page does not exist
     </h1>

@@ -57,9 +57,13 @@ class Router
       $params = $this->matchRoute($route['uri'], $uri);
       if ($params !== null) {
         self::$routeParams = $params;
-        return require_once base_path('Http/controllers/' . $route['controller']);
+        // Use require (not require_once): FPM/built-in server reuse workers; require_once
+        // would skip the controller on later requests and emit no output.
+        return require base_path('Http/controllers/' . $route['controller']);
       }
     }
+
+    error_log('[router] no match for uri=' . $uri . ' method=' . strtoupper($method));
 
     $this->abort();
   }

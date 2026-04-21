@@ -118,20 +118,29 @@ $hasPosts = is_array($posts) && count($posts) > 0;
                     role="presentation"
                     aria-hidden="true">
                     <?php for ($i = 0; $i < 3; $i++) : ?>
-                        <li class="rounded-xl border border-stone-200/90 bg-white p-6 shadow-sm">
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="h-3 w-24 animate-pulse rounded bg-stone-200/90"></div>
-                                <div class="h-6 w-16 animate-pulse rounded-full bg-stone-200/80"></div>
+                        <li class="overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-sm ring-1 ring-stone-200/60">
+                            <div class="aspect-[16/10] w-full animate-pulse bg-stone-200/70" aria-hidden="true"></div>
+                            <div class="p-5 sm:p-6">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="h-3 w-24 animate-pulse rounded bg-stone-200/90"></div>
+                                    <div class="flex flex-wrap justify-end gap-1.5">
+                                        <div class="h-6 w-14 animate-pulse rounded-full bg-stone-200/80"></div>
+                                        <div class="h-6 w-12 animate-pulse rounded-full bg-stone-200/75"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex items-center gap-2.5">
+                                    <div class="h-8 w-8 shrink-0 animate-pulse rounded-full bg-stone-200/80"></div>
+                                    <div class="h-3 w-32 animate-pulse rounded bg-stone-200/80"></div>
+                                </div>
+                                <div class="mt-5 h-5 w-full animate-pulse rounded bg-stone-200/90"></div>
+                                <div class="mt-3 h-5 w-4/5 max-w-[18rem] animate-pulse rounded bg-stone-200/70"></div>
+                                <div class="mt-3 space-y-2">
+                                    <div class="h-3 w-full animate-pulse rounded bg-stone-200/60"></div>
+                                    <div class="h-3 w-full animate-pulse rounded bg-stone-200/60"></div>
+                                    <div class="h-3 w-2/3 animate-pulse rounded bg-stone-200/60"></div>
+                                </div>
+                                <div class="mt-6 h-3 w-28 animate-pulse rounded bg-stone-200/70"></div>
                             </div>
-                            <div class="mt-4 h-3 w-32 animate-pulse rounded bg-stone-200/80"></div>
-                            <div class="mt-5 h-5 w-full animate-pulse rounded bg-stone-200/90"></div>
-                            <div class="mt-3 h-5 w-4/5 max-w-[18rem] animate-pulse rounded bg-stone-200/70"></div>
-                            <div class="mt-3 space-y-2">
-                                <div class="h-3 w-full animate-pulse rounded bg-stone-200/60"></div>
-                                <div class="h-3 w-full animate-pulse rounded bg-stone-200/60"></div>
-                                <div class="h-3 w-2/3 animate-pulse rounded bg-stone-200/60"></div>
-                            </div>
-                            <div class="mt-6 h-3 w-28 animate-pulse rounded bg-stone-200/70"></div>
                         </li>
                     <?php endfor; ?>
                 </ul>
@@ -141,39 +150,119 @@ $hasPosts = is_array($posts) && count($posts) > 0;
                     <?php foreach ($posts as $post) : ?>
                         <?php
                         $detailUrl = blog_post_url($post['slug']);
+                        $cardTitle = (string)($post['title'] ?? '');
+                        $feat = isset($post['featuredImageUrl']) && $post['featuredImageUrl'] !== null && $post['featuredImageUrl'] !== ''
+                                ? trim((string)$post['featuredImageUrl'])
+                                : '';
+                        $featAlt = $cardTitle !== '' ? $cardTitle : 'Article cover image';
+                        $authorName = (string)($post['author'] ?? '');
+                        $avUrl = isset($post['authorAvatarUrl']) && $post['authorAvatarUrl'] !== null ? trim((string)$post['authorAvatarUrl']) : '';
+                        $avAlt = (string)($post['authorAvatarAlt'] ?? $authorName);
+                        $readMin = (int)($post['readingMinutes'] ?? 0);
                         ?>
                         <li>
                             <article
-                                    class="relative flex h-full flex-col rounded-xl border border-stone-200/90 bg-white p-6 shadow-sm transition hover:border-stone-300 hover:shadow-md">
-                                <div class="flex items-center justify-between gap-3">
-                                    <time class="text-xs font-medium tabular-nums text-stone-500"
-                                          datetime="<?= htmlspecialchars($post['dateIso'], ENT_QUOTES, 'UTF-8') ?>">
-                                        <?= htmlspecialchars($post['dateDisplay'], ENT_QUOTES, 'UTF-8') ?>
-                                    </time>
-                                    <?php if (($post['tag'] ?? '') !== '') : ?>
-                                        <span class="rounded-full bg-amber-100/90 px-2.5 py-0.5 text-xs font-semibold text-amber-900/90 ring-1 ring-amber-200/80">
-                                            <?= htmlspecialchars($post['tag'], ENT_QUOTES, 'UTF-8') ?>
-                                        </span>
+                                    class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-sm ring-1 ring-stone-200/60 transition hover:border-stone-300 hover:shadow-md">
+                                <a href="<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                   class="relative block aspect-[16/10] w-full shrink-0 overflow-hidden bg-gradient-to-br from-stone-200/90 to-stone-300/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                                    <?php if ($feat !== '') : ?>
+                                        <img src="<?= htmlspecialchars($feat, ENT_QUOTES, 'UTF-8') ?>"
+                                             alt="<?= htmlspecialchars($featAlt, ENT_QUOTES, 'UTF-8') ?>"
+                                             class="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-[1.03]"
+                                             loading="lazy"
+                                             decoding="async"
+                                             sizes="(min-width: 1024px) 33vw, 100vw"/>
+                                    <?php else : ?>
+                                        <div class="flex h-full w-full flex-col items-center justify-center gap-2 text-stone-500"
+                                             aria-hidden="true">
+                                            <svg class="h-10 w-10 opacity-60" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                                                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                                                <circle cx="8.5" cy="10" r="1.5"/>
+                                                <path d="M21 17l-5-5-4 4-3-3-4 4"/>
+                                            </svg>
+                                            <span class="text-xs font-medium">No cover image</span>
+                                        </div>
                                     <?php endif; ?>
+                                </a>
+                                <div class="flex flex-1 flex-col p-5 sm:p-6">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <time class="text-xs font-medium tabular-nums text-stone-500"
+                                              datetime="<?= htmlspecialchars((string)($post['dateIso'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars((string)($post['dateDisplay'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </time>
+                                        <div class="flex max-w-[min(100%,18rem)] flex-wrap items-center justify-end gap-1.5">
+                                            <?php
+                                            $catSlug = trim((string)($post['category_slug'] ?? ''));
+                                            $catName = trim((string)($post['category'] ?? ''));
+                                            if ($catSlug !== '' && $catName !== '') :
+                                                ?>
+                                                <a href="<?= htmlspecialchars(blogs_index_url(['category' => $catSlug, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="relative z-10 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-800 ring-1 ring-stone-200/80 transition hover:bg-stone-200/90">
+                                                    <?= htmlspecialchars($catName, ENT_QUOTES, 'UTF-8') ?>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php
+                                            $ptags = isset($post['tags']) && is_array($post['tags']) ? $post['tags'] : [];
+                                            foreach ($ptags as $tg) :
+                                                if (!is_array($tg)) {
+                                                    continue;
+                                                }
+                                                $ts = trim((string)($tg['slug'] ?? ''));
+                                                $tn = trim((string)($tg['name'] ?? ''));
+                                                if ($ts === '') {
+                                                    continue;
+                                                }
+                                                $tc = blog_sanitize_color($tg['color'] ?? null, '#78716c');
+                                                ?>
+                                                <a href="<?= htmlspecialchars(blogs_index_url(['tag' => $ts, 'page' => 1]), ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="relative z-10 inline-flex max-w-full items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-stone-900 ring-1 ring-stone-200/80 transition hover:opacity-90"
+                                                   style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>22;">
+                                                    <span class="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-stone-900/10"
+                                                          style="background-color: <?= htmlspecialchars($tc, ENT_QUOTES, 'UTF-8') ?>"
+                                                          aria-hidden="true"></span>
+                                                    <span class="min-w-0 truncate"><?= htmlspecialchars($tn !== '' ? $tn : $ts, ENT_QUOTES, 'UTF-8') ?></span>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex items-center gap-2.5 text-xs font-medium text-stone-600">
+                                        <?php if ($avUrl !== '') : ?>
+                                            <img src="<?= htmlspecialchars($avUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                                 alt="<?= htmlspecialchars($avAlt, ENT_QUOTES, 'UTF-8') ?>"
+                                                 class="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm"
+                                                 width="32"
+                                                 height="32"
+                                                 loading="lazy"/>
+                                        <?php else : ?>
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-200 text-[11px] font-bold text-stone-700 ring-2 ring-white shadow-sm"
+                                                  aria-hidden="true"><?= htmlspecialchars(blog_author_initials($authorName), ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php endif; ?>
+                                        <span class="min-w-0">
+                                    <span class="text-stone-500">By</span>
+                                    <?= htmlspecialchars($authorName, ENT_QUOTES, 'UTF-8') ?>
+                                            <?php if ($readMin > 0) : ?>
+                                                <span class="text-stone-400" aria-hidden="true"> · </span>
+                                                <span class="tabular-nums text-stone-500"><?= $readMin ?> min read</span>
+                                            <?php endif; ?>
+                                  </span>
+                                    </div>
+                                    <h3 class="font-editorial mt-4 text-lg font-semibold leading-snug text-stone-900">
+                                        <a href="<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                           class="transition hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
+                                            <?= htmlspecialchars($cardTitle, ENT_QUOTES, 'UTF-8') ?>
+                                        </a>
+                                    </h3>
+                                    <p class="mt-3 flex-1 text-sm leading-relaxed text-stone-600 line-clamp-3">
+                                        <?= htmlspecialchars((string)($post['excerpt'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </p>
+                                    <p class="mt-5">
+                                        <a href="<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>"
+                                           class="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-amber-800 transition hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
+                                            Read article <span aria-hidden="true">→</span>
+                                        </a>
+                                    </p>
                                 </div>
-                                <p class="mt-2 text-xs font-medium text-stone-600">
-                                    By <?= htmlspecialchars($post['author'] ?? '', ENT_QUOTES, 'UTF-8') ?>
-                                </p>
-                                <h3 class="font-editorial mt-3 text-lg font-semibold leading-snug text-stone-900">
-                                    <a href="<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>"
-                                       class="after:absolute after:inset-0 after:rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                                        <?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>
-                                    </a>
-                                </h3>
-                                <p class="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
-                                    <?= htmlspecialchars($post['excerpt'], ENT_QUOTES, 'UTF-8') ?>
-                                </p>
-                                <p class="mt-5">
-                                    <a href="<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>"
-                                       class="relative z-10 text-xs font-semibold uppercase tracking-wider text-amber-800 transition hover:text-amber-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white rounded-sm">
-                                        Read article →
-                                    </a>
-                                </p>
                             </article>
                         </li>
                     <?php endforeach; ?>

@@ -6,3 +6,6 @@
 
 /public/uploads/avatars/*
 !/public/uploads/avatars/.gitkeep
+
+/public/uploads/featured/*
+!/public/uploads/featured/.gitkeep

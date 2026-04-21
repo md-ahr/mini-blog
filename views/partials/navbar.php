@@ -3,7 +3,8 @@ $path = blog_current_path();
 $isHome = $path === '/' || $path === '';
 $isAbout = $path === '/about';
 $isContact = $path === '/contact';
-$isBlog = $path === '/blogs' || str_starts_with($path, '/blogs/');
+$isBlog = $path === '/blogs' || str_starts_with($path, '/blogs/')
+  || $path === '/blog' || str_starts_with($path, '/blog/');
 $isLogin = $path === '/login';
 $homeUrl = blog_url();
 $aboutUrl = blog_url('about');

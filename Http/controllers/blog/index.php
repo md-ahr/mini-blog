@@ -33,23 +33,46 @@ if ($filterTag !== '' && !in_array($filterTag, $validTagSlugs, true)) {
 $categoryRows = $db->query(
   'SELECT `slug`, `name` FROM `categories` ORDER BY `sort_order` ASC, `name` ASC'
 )->get();
+
+$filterCategoryRaw = isset($_GET['category']) ? trim((string) $_GET['category']) : '';
+$filterCategory = '';
+if ($filterCategoryRaw !== '') {
+  $want = mb_strtolower($filterCategoryRaw, 'UTF-8');
+  foreach ($categoryRows as $r) {
+    $sl = trim((string) ($r['slug'] ?? ''));
+    if ($sl === '') {
+      continue;
+    }
+    if (mb_strtolower($sl, 'UTF-8') === $want) {
+      $filterCategory = $sl;
+      break;
+    }
+  }
+  if ($filterCategory === '') {
+    foreach ($categoryRows as $r) {
+      $sl = trim((string) ($r['slug'] ?? ''));
+      $nm = trim((string) ($r['name'] ?? ''));
+      if ($sl === '' || $nm === '') {
+        continue;
+      }
+      if (mb_strtolower($nm, 'UTF-8') === $want) {
+        $filterCategory = $sl;
+        break;
+      }
+    }
+  }
+}
+
 $sidebarCategories = [];
-$validCategorySlugs = [];
 foreach ($categoryRows as $r) {
   $sl = trim((string) ($r['slug'] ?? ''));
   if ($sl === '') {
     continue;
   }
-  $validCategorySlugs[] = $sl;
   $sidebarCategories[] = [
     'name' => (string) ($r['name'] ?? ''),
     'slug' => $sl,
   ];
-}
-
-$filterCategory = isset($_GET['category']) ? trim((string) $_GET['category']) : '';
-if ($filterCategory !== '' && !in_array($filterCategory, $validCategorySlugs, true)) {
-  $filterCategory = '';
 }
 
 $searchQuery = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
@@ -99,7 +122,8 @@ $limit = $perPage;
 $posts = [];
 if ($totalCount > 0) {
   $rows = $db->query(
-    "SELECT `p`.`id`, `p`.`slug`, `p`.`title`, `p`.`excerpt`, `p`.`reading_minutes`, `p`.`published_at`, `p`.`featured_image_url`, `u`.`name` AS `author`,
+    "SELECT `p`.`id`, `p`.`slug`, `p`.`title`, `p`.`excerpt`, `p`.`reading_minutes`, `p`.`published_at`, `p`.`updated_at`, `p`.`featured_image_url`,
+            `u`.`name` AS `author`, `u`.`avatar_url` AS `author_avatar_url`, `u`.`avatar_alt` AS `author_avatar_alt`, `u`.`bio` AS `author_bio`,
             `cat`.`name` AS `category_name`, `cat`.`slug` AS `category_slug`
      $baseFrom
      WHERE $whereSql

@@ -49,6 +49,26 @@ function blog_current_path(): string
 }
 
 /**
+ * Blog listing path segment: "blog" or "blogs" (matches current URL when possible).
+ */
+function blogs_archive_base_path(): string
+{
+  $path = blog_current_path();
+  if ($path === '/blog' || str_starts_with($path, '/blog/')) {
+    return 'blog';
+  }
+  return 'blogs';
+}
+
+/**
+ * URL for the blog archive index (respects /blog vs /blogs from the active request).
+ */
+function blogs_archive_url(): string
+{
+  return blog_url(blogs_archive_base_path());
+}
+
+/**
  * Named parameters from the last matched dynamic route (e.g. :slug).
  */
 function route_param(string $key, $default = null)
@@ -58,7 +78,8 @@ function route_param(string $key, $default = null)
 
 function blog_post_url(string $slug): string
 {
-  return blog_url('blogs/' . ltrim($slug, '/'));
+  $base = blogs_archive_base_path();
+  return blog_url($base . '/' . ltrim($slug, '/'));
 }
 
 /**
@@ -85,6 +106,21 @@ function blog_post_from_db_row(array $row): array
     }
   }
   $firstTag = $tags[0]['name'] ?? '';
+  if ($firstTag === '' && isset($row['tag'])) {
+    $firstTag = trim((string) $row['tag']);
+  }
+  $authorAvatar = trim((string) ($row['author_avatar_url'] ?? ''));
+  $authorAvatarAlt = trim((string) ($row['author_avatar_alt'] ?? ''));
+  $authorName = (string) ($row['author'] ?? '');
+  $updatedRaw = $row['updated_at'] ?? null;
+  $updatedDt = $updatedRaw ? date_create((string) $updatedRaw) : false;
+  $updatedDisplay = $updatedDt instanceof DateTimeInterface ? $updatedDt->format('M j, Y') : '';
+  $updatedIso = $updatedDt instanceof DateTimeInterface ? $updatedDt->format('c') : '';
+  $publishedDt = $published !== '' ? date_create($published) : false;
+  $showUpdated = false;
+  if ($updatedDt instanceof DateTimeInterface && $publishedDt instanceof DateTimeInterface) {
+    $showUpdated = $updatedDt->format('Y-m-d') !== $publishedDt->format('Y-m-d');
+  }
   $out = [
     'slug' => $row['slug'],
     'title' => $row['title'],
@@ -93,13 +129,19 @@ function blog_post_from_db_row(array $row): array
     'tags' => $tags,
     'category' => isset($row['category_name']) ? trim((string) $row['category_name']) : '',
     'category_slug' => isset($row['category_slug']) ? trim((string) $row['category_slug']) : '',
-    'author' => (string) ($row['author'] ?? ''),
+    'author' => $authorName,
+    'authorAvatarUrl' => $authorAvatar !== '' ? $authorAvatar : null,
+    'authorAvatarAlt' => $authorAvatarAlt !== '' ? $authorAvatarAlt : ($authorName !== '' ? $authorName : 'Author'),
+    'authorBio' => trim((string) ($row['author_bio'] ?? '')),
     'dateIso' => $published,
     'dateDisplay' => $dt->format('M j, Y'),
     'readingMinutes' => (int) ($row['reading_minutes'] ?? 0),
     'featuredImageUrl' => isset($row['featured_image_url']) && $row['featured_image_url'] !== null && $row['featured_image_url'] !== ''
       ? (string) $row['featured_image_url']
       : null,
+    'updatedAtIso' => $updatedIso,
+    'updatedAtDisplay' => $updatedDisplay,
+    'showUpdatedDate' => $showUpdated,
     'content' => [],
   ];
   if (array_key_exists('content', $row) && $row['content'] !== null && $row['content'] !== '') {
@@ -108,6 +150,75 @@ function blog_post_from_db_row(array $row): array
     $out['content'] = is_array($decoded) ? $decoded : [];
   }
   return $out;
+}
+
+/**
+ * Two-letter style initials for author byline fallback.
+ */
+function blog_author_initials(string $name): string
+{
+  $name = trim($name);
+  if ($name === '') {
+    return '?';
+  }
+  $parts = preg_split('/\s+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
+  if ($parts !== false && count($parts) >= 2) {
+    return mb_strtoupper(mb_substr($parts[0], 0, 1) . mb_substr($parts[count($parts) - 1], 0, 1), 'UTF-8');
+  }
+  return mb_strtoupper(mb_substr($name, 0, min(2, mb_strlen($name))), 'UTF-8');
+}
+
+/**
+ * Short relative label for dashboard timelines (e.g. "2 hours ago", "Mar 4, 2026").
+ */
+function blog_short_relative_time(?string $mysqlDatetime): string
+{
+  if ($mysqlDatetime === null || $mysqlDatetime === '') {
+    return '—';
+  }
+  $dt = date_create_immutable($mysqlDatetime);
+  if (!$dt) {
+    return '—';
+  }
+  $now = new DateTimeImmutable('now');
+  $sec = $now->getTimestamp() - $dt->getTimestamp();
+  if ($sec < 0) {
+    return $dt->format('M j, Y');
+  }
+  if ($sec < 60) {
+    return 'Just now';
+  }
+  if ($sec < 3600) {
+    $n = (int) floor($sec / 60);
+    return $n === 1 ? '1 min ago' : $n . ' min ago';
+  }
+  if ($sec < 86400) {
+    $n = (int) floor($sec / 3600);
+    return $n === 1 ? '1 hour ago' : $n . ' hours ago';
+  }
+  if ($sec < 7 * 86400) {
+    $n = (int) floor($sec / 86400);
+    return $n === 1 ? '1 day ago' : $n . ' days ago';
+  }
+  return $dt->format('M j, Y');
+}
+
+/**
+ * Absolute URL for Open Graph / sharing when $url may be protocol-relative or path-only.
+ */
+function blog_absolute_url(string $pathOrUrl): string
+{
+  $pathOrUrl = trim($pathOrUrl);
+  if ($pathOrUrl === '') {
+    return '';
+  }
+  if (preg_match('#^https?://#i', $pathOrUrl)) {
+    return $pathOrUrl;
+  }
+  $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+  $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+  $path = str_starts_with($pathOrUrl, '/') ? $pathOrUrl : '/' . $pathOrUrl;
+  return $scheme . '://' . $host . $path;
 }
 
 /**
@@ -150,7 +261,7 @@ function blog_sanitize_color(?string $raw, string $default = '#78716c'): string
  */
 function blog_unique_slug(\Core\Database $db, string $table, string $baseSlug, ?int $excludeId = null): string
 {
-  if ($table !== 'tags' && $table !== 'categories') {
+  if ($table !== 'tags' && $table !== 'categories' && $table !== 'posts') {
     throw new InvalidArgumentException('Invalid table for slug.');
   }
   $slug = blog_slugify($baseSlug);
@@ -217,6 +328,156 @@ function blog_tags_by_post_ids(\Core\Database $db, array $postIds): array
 }
 
 /**
+ * Convert article body textarea (paragraphs separated by blank lines) to JSON blocks for `posts.content`.
+ */
+function blog_post_body_to_content_json(string $raw): string
+{
+  $raw = str_replace("\r\n", "\n", $raw);
+  $raw = trim($raw);
+  if ($raw === '') {
+    return json_encode([['type' => 'p', 'text' => '']], JSON_UNESCAPED_UNICODE);
+  }
+  $chunks = preg_split('/\n\s*\n/', $raw, -1, PREG_SPLIT_NO_EMPTY);
+  if ($chunks === false || $chunks === []) {
+    $chunks = [$raw];
+  }
+  $blocks = [];
+  foreach ($chunks as $c) {
+    $t = trim((string) $c);
+    if ($t !== '') {
+      $blocks[] = ['type' => 'p', 'text' => $t];
+    }
+  }
+  if ($blocks === []) {
+    $blocks[] = ['type' => 'p', 'text' => trim($raw)];
+  }
+  return json_encode($blocks, JSON_UNESCAPED_UNICODE);
+}
+
+/**
+ * @param mixed $contentJson string from DB or decoded array
+ */
+function blog_post_content_to_body_text(mixed $contentJson): string
+{
+  if (is_string($contentJson)) {
+    $decoded = json_decode($contentJson, true);
+  } else {
+    $decoded = $contentJson;
+  }
+  if (!is_array($decoded)) {
+    return '';
+  }
+  $parts = [];
+  foreach ($decoded as $block) {
+    if (!is_array($block)) {
+      continue;
+    }
+    $type = (string) ($block['type'] ?? '');
+    if ($type === 'p') {
+      $parts[] = (string) ($block['text'] ?? '');
+    }
+  }
+  return implode("\n\n", array_filter($parts, static fn (string $p): bool => $p !== ''));
+}
+
+const BLOG_FEATURED_IMAGE_MAX_BYTES = 2097152;
+
+function blog_featured_uploads_dir(): string
+{
+  return base_path('public/uploads/featured');
+}
+
+/**
+ * @param array{name?: string, type?: string, tmp_name?: string, error?: int, size?: int} $file
+ * @return array{ok: true, url: string}|array{ok: false, error: string}
+ */
+function blog_featured_image_store_upload(array $file): array
+{
+  $err = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+  if ($err === UPLOAD_ERR_NO_FILE) {
+    return ['ok' => false, 'error' => 'no_file'];
+  }
+  if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
+    return ['ok' => false, 'error' => 'too_large'];
+  }
+  if ($err !== UPLOAD_ERR_OK) {
+    return ['ok' => false, 'error' => 'failed'];
+  }
+  $tmp = (string) ($file['tmp_name'] ?? '');
+  if ($tmp === '' || !is_uploaded_file($tmp)) {
+    return ['ok' => false, 'error' => 'failed'];
+  }
+  $size = (int) ($file['size'] ?? 0);
+  if ($size < 1 || $size > BLOG_FEATURED_IMAGE_MAX_BYTES) {
+    return ['ok' => false, 'error' => 'too_large'];
+  }
+  $finfo = new finfo(FILEINFO_MIME_TYPE);
+  $mime = $finfo->file($tmp);
+  $extMap = [
+    'image/jpeg' => 'jpg',
+    'image/png' => 'png',
+    'image/webp' => 'webp',
+    'image/gif' => 'gif',
+  ];
+  if (!is_string($mime) || !isset($extMap[$mime])) {
+    return ['ok' => false, 'error' => 'invalid'];
+  }
+  $ext = $extMap[$mime];
+  $dir = blog_featured_uploads_dir();
+  if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+    return ['ok' => false, 'error' => 'failed'];
+  }
+  $basename = 'f_' . bin2hex(random_bytes(8)) . '.' . $ext;
+  $dest = $dir . '/' . $basename;
+  if (!move_uploaded_file($tmp, $dest)) {
+    return ['ok' => false, 'error' => 'failed'];
+  }
+  return ['ok' => true, 'url' => blog_url('uploads/featured/' . $basename)];
+}
+
+/**
+ * Replace post_tag rows from a comma-separated list of tag names (creates missing tags).
+ */
+function blog_post_sync_tags(\Core\Database $db, int $postId, string $tagListRaw): void
+{
+  $db->query('DELETE FROM `post_tag` WHERE `post_id` = ?', [$postId]);
+  $parts = preg_split('/\s*,\s*/', trim($tagListRaw), -1, PREG_SPLIT_NO_EMPTY);
+  $seen = [];
+  foreach ($parts as $piece) {
+    $name = mb_substr(trim($piece), 0, 191);
+    if ($name === '') {
+      continue;
+    }
+    $key = mb_strtolower($name, 'UTF-8');
+    if (isset($seen[$key])) {
+      continue;
+    }
+    $seen[$key] = true;
+    $slugTry = blog_slugify($name);
+    $tagRow = $db->query('SELECT `id` FROM `tags` WHERE `name` = ? LIMIT 1', [$name])->find();
+    if (!$tagRow && $slugTry !== '') {
+      $tagRow = $db->query('SELECT `id` FROM `tags` WHERE `slug` = ? LIMIT 1', [$slugTry])->find();
+    }
+    if (!$tagRow) {
+      $slug = blog_unique_slug($db, 'tags', $name);
+      $db->query(
+        'INSERT INTO `tags` (`name`, `slug`, `color`) VALUES (?, ?, ?)',
+        [$name, $slug, '#78716c']
+      );
+      $tagRow = $db->query('SELECT `id` FROM `tags` WHERE `slug` = ? LIMIT 1', [$slug])->find();
+    }
+    if (!$tagRow) {
+      continue;
+    }
+    $tagId = (int) $tagRow['id'];
+    $db->query(
+      'INSERT IGNORE INTO `post_tag` (`post_id`, `tag_id`) VALUES (?, ?)',
+      [$postId, $tagId]
+    );
+  }
+}
+
+/**
  * @param list<array<string, mixed>> $rows post rows including `id`
  * @return list<array<string, mixed>>
  */
@@ -243,9 +504,9 @@ function blog_posts_with_tags(\Core\Database $db, array $rows): array
 }
 
 /**
- * Build /blogs URL with optional tag, search (q), and page query string.
+ * Build blog archive URL (/blogs or /blog) with optional tag, category, search (q), page.
  *
- * @param array{tag?: string, q?: string, page?: int} $query
+ * @param array{tag?: string, category?: string, q?: string, page?: int} $query
  */
 function blogs_index_url(array $query = []): string
 {
@@ -266,7 +527,7 @@ function blogs_index_url(array $query = []): string
   if ($page > 1) {
     $params['page'] = $page;
   }
-  $base = blog_url('blogs');
+  $base = blog_url(blogs_archive_base_path());
   return $params === [] ? $base : $base . '?' . http_build_query($params);
 }
 
