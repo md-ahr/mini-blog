@@ -55,7 +55,7 @@ $chartSummaryText = $chartSummaryText ?? '';
         return;
     }
 
-    var grid = { color: 'rgba(120, 113, 108, 0.12)' };
+    var gridColor = 'rgba(120, 113, 108, 0.12)';
     var font = { family: 'Inter, ui-sans-serif, system-ui, sans-serif' };
 
     var daily = document.getElementById('dashboard-chart-daily');
@@ -119,7 +119,7 @@ $chartSummaryText = $chartSummaryText ?? '';
                     },
                     y: {
                         beginAtZero: true,
-                        grid: { color: grid },
+                        grid: { color: gridColor },
                         ticks: {
                             font: font,
                             color: '#78716c',
