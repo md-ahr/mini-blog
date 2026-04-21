@@ -7,11 +7,13 @@
  * @var bool $sent
  * @var array<string, string> $errors
  * @var array<string, string> $values
+ * @var string $csrfToken
  */
 require_once base_path('views/partials/head.php');
 require_once base_path('views/partials/navbar.php');
 
 $contactUrl = blog_url('contact');
+$csrfToken = $csrfToken ?? auth_csrf_token();
 $hasErrors = $errors !== [];
 $fieldBase = 'mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm text-stone-900 shadow-inner shadow-stone-900/5 transition placeholder:text-stone-400 focus:outline-none focus:ring-2';
 $fieldOk = 'border-stone-200 focus:border-amber-400/90 focus:ring-amber-500/25';
@@ -26,8 +28,8 @@ $fieldErr = 'border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-400
                 Say hello
             </h1>
             <p class="mt-4 text-base leading-relaxed text-stone-600">
-                Questions, feedback, or collaboration ideas—send a note. This form is a demo: wire it to email or a
-                ticketing system when you are ready.
+                Questions, feedback, or collaboration ideas—send a note. Submissions are emailed to the site owner;
+                you can also reply via the address you provide.
             </p>
         </header>
 
@@ -37,7 +39,7 @@ $fieldErr = 'border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-400
                  aria-live="polite">
                 <p class="font-semibold text-emerald-900">Message received</p>
                 <p class="mt-1 leading-relaxed text-emerald-900/90">
-                    Thanks for reaching out. In a production setup this would trigger an email or save to your inbox.
+                    Thanks for reaching out. Your message has been sent.
                 </p>
                 <p class="mt-4">
                     <a href="<?= htmlspecialchars(blog_url('contact'), ENT_QUOTES, 'UTF-8') ?>"
@@ -51,7 +53,14 @@ $fieldErr = 'border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-400
                 <div class="mt-8 rounded-2xl border border-red-200/90 bg-red-50/50 px-5 py-4 text-sm text-red-900 shadow-sm ring-1 ring-red-100/80"
                      role="alert"
                      aria-live="assertive">
-                    <p class="font-semibold">Some fields need your attention—check the messages below each one.</p>
+                    <?php if (isset($errors['general'])) : ?>
+                        <p class="font-semibold"><?= htmlspecialchars($errors['general'], ENT_QUOTES, 'UTF-8') ?></p>
+                        <?php if (count($errors) > 1) : ?>
+                            <p class="mt-2">Also check the messages below each field.</p>
+                        <?php endif; ?>
+                    <?php else : ?>
+                        <p class="font-semibold">Some fields need your attention—check the messages below each one.</p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
 
@@ -59,6 +68,7 @@ $fieldErr = 'border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-400
                   method="post"
                   action="<?= htmlspecialchars($contactUrl, ENT_QUOTES, 'UTF-8') ?>"
                   novalidate>
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>"/>
                 <p class="sr-only">Fields marked as required must be filled before sending.</p>
 
                 <div class="hidden" aria-hidden="true">

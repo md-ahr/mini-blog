@@ -837,6 +837,170 @@ function auth_csrf_validate(?string $token): bool
 }
 
 /**
+ * Inbox for contact form. Override with env CONTACT_EMAIL.
+ */
+function blog_contact_to_email(): string
+{
+  $raw = trim((string) (getenv('CONTACT_EMAIL') ?: 'ahr.web.pro@gmail.com'));
+  return filter_var($raw, FILTER_VALIDATE_EMAIL) ? $raw : 'ahr.web.pro@gmail.com';
+}
+
+/**
+ * From: address for contact mail. Set CONTACT_FROM_EMAIL if your host rejects noreply@yourdomain.
+ */
+function blog_contact_from_email(): string
+{
+  $override = trim((string) getenv('CONTACT_FROM_EMAIL'));
+  if ($override !== '' && filter_var($override, FILTER_VALIDATE_EMAIL)) {
+    return $override;
+  }
+  $host = (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+  $host = preg_replace('/:\d+$/', '', $host);
+  $host = preg_replace('/[^\pL\pN.-]/u', '', $host);
+  if ($host !== '' && str_contains($host, '.')) {
+    $candidate = 'noreply@' . $host;
+    if (filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+      return $candidate;
+    }
+  }
+  return blog_contact_to_email();
+}
+
+function blog_mail_rfc_address(string $name, string $email): string
+{
+  $email = trim($email);
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    return '';
+  }
+  $name = str_replace(["\r", "\n"], '', $name);
+  $name = trim($name);
+  if ($name === '') {
+    return $email;
+  }
+  $q = '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $name) . '"';
+  return $q . ' <' . $email . '>';
+}
+
+/**
+ * Mailtrap SMTP credentials (Email Testing inbox). Env: MAILTRAP_USER, MAILTRAP_PASSWORD (or MAILTRAP_PASS).
+ *
+ * @return array{host: string, port: int, user: string, pass: string, encryption: string}|null
+ */
+function blog_mailtrap_config(): ?array
+{
+  $user = trim((string) getenv('MAILTRAP_USER'));
+  $pass = trim((string) (getenv('MAILTRAP_PASSWORD') ?: getenv('MAILTRAP_PASS')));
+  if ($user === '' || $pass === '') {
+    return null;
+  }
+  return [
+    'host' => trim((string) (getenv('MAILTRAP_HOST') ?: 'sandbox.smtp.mailtrap.io')),
+    'port' => (int) (getenv('MAILTRAP_PORT') ?: 2525),
+    'user' => $user,
+    'pass' => $pass,
+    'encryption' => strtolower(trim((string) (getenv('MAILTRAP_ENCRYPTION') ?: 'tls'))),
+  ];
+}
+
+/**
+ * Deliver contact form via Mailtrap (PHPMailer SMTP) when configured, else PHP mail().
+ * Reply-To is the visitor so you can reply from your mail client.
+ *
+ * @return array{ok: bool, error?: string}
+ */
+function blog_send_contact_mail(string $name, string $replyEmail, string $subjectLine, string $messageBody): array
+{
+  $to = blog_contact_to_email();
+  $fromEmail = blog_contact_from_email();
+  $fromName = trim((string) (getenv('CONTACT_FROM_NAME') ?: 'Mini Blog'));
+
+  $site = trim((string) ($_SERVER['HTTP_HOST'] ?? 'site'));
+  $sub = $subjectLine !== '' ? $subjectLine : 'Message from contact form';
+  $mailSubject = '[Contact] ' . $sub;
+
+  $reply = blog_mail_rfc_address($name, $replyEmail);
+  if ($reply === '') {
+    return ['ok' => false, 'error' => 'invalid_reply'];
+  }
+
+  $body = "You received a message through the contact form on {$site}.\r\n\r\n";
+  $body .= 'Name: ' . str_replace(["\r", "\n"], ' ', $name) . "\r\n";
+  $body .= 'Email: ' . $replyEmail . "\r\n";
+  if ($subjectLine !== '') {
+    $body .= 'Subject line: ' . str_replace(["\r", "\n"], ' ', $subjectLine) . "\r\n";
+  }
+  $body .= "\r\n---\r\n\r\n";
+  $body .= str_replace("\r\n", "\n", $messageBody);
+  $body = str_replace("\n", "\r\n", $body);
+  $body .= "\r\n";
+
+  $cfg = blog_mailtrap_config();
+  if ($cfg !== null && class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+    try {
+      $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+      $mail->isSMTP();
+      $mail->Host = $cfg['host'];
+      $mail->Port = $cfg['port'];
+      $mail->SMTPAuth = true;
+      $mail->Username = $cfg['user'];
+      $mail->Password = $cfg['pass'];
+      $mail->CharSet = \PHPMailer\PHPMailer\PHPMailer::CHARSET_UTF8;
+
+      $enc = $cfg['encryption'];
+      if ($enc === 'none' || $enc === 'false' || $enc === '') {
+        $mail->SMTPAutoTLS = false;
+        $mail->SMTPSecure = '';
+      } elseif ($enc === 'ssl') {
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+      } else {
+        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+      }
+
+      $mail->setFrom($fromEmail, $fromName);
+      $mail->addAddress($to);
+      $mail->addReplyTo($replyEmail, $name);
+      $mail->Subject = $mailSubject;
+      $mail->Body = $body;
+      $mail->isHTML(false);
+      $mail->send();
+      return ['ok' => true];
+    } catch (\Throwable) {
+      return ['ok' => false, 'error' => 'send_failed'];
+    }
+  }
+
+  if ($cfg !== null && !class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+    return ['ok' => false, 'error' => 'send_failed'];
+  }
+
+  if (function_exists('mb_encode_mimeheader')) {
+    $enc = mb_encode_mimeheader($mailSubject, 'UTF-8', 'B', "\r\n");
+    if (is_string($enc) && $enc !== '') {
+      $mailSubject = $enc;
+    }
+  }
+
+  $from = blog_mail_rfc_address($fromName, $fromEmail);
+  if ($from === '') {
+    $from = $fromEmail;
+  }
+
+  $headers = [
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'From: ' . $from,
+    'Reply-To: ' . $reply,
+    'X-Mailer: PHP/' . PHP_VERSION,
+  ];
+
+  $sent = @mail($to, $mailSubject, $body, implode("\r\n", $headers));
+  if (!$sent) {
+    return ['ok' => false, 'error' => 'send_failed'];
+  }
+  return ['ok' => true];
+}
+
+/**
  * Safe path segment after login (e.g. dashboard/posts). Empty = use default.
  */
 function auth_login_read_next(string $raw): string

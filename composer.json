@@ -1,0 +1,12 @@
+{
+    "name": "ahr/php-mini-blog",
+    "authors": [
+        {
+            "name": "Abdul Halim",
+            "email": "ahr.web.pro@gmail.com"
+        }
+    ],
+    "require": {
+        "phpmailer/phpmailer": "^7.0"
+    }
+}

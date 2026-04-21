@@ -1,5 +1,7 @@
 <?php
 
+auth_session_bootstrap();
+
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $sent = isset($_GET['sent']) && $_GET['sent'] === '1';
 
@@ -21,6 +23,10 @@ if ($method === 'POST') {
 
   if ($honeypot !== '') {
     redirect(blog_url('contact?sent=1'));
+  }
+
+  if (!auth_csrf_validate($_POST['_csrf'] ?? null)) {
+    $errors['general'] = 'Your session expired. Refresh the page and try again.';
   }
 
   if ($values['name'] === '') {
@@ -50,7 +56,28 @@ if ($method === 'POST') {
   }
 
   if ($errors === []) {
-    redirect(blog_url('contact?sent=1'));
+    $last = (int) ($_SESSION['contact_last_sent_at'] ?? 0);
+    if ($last > 0 && time() - $last < 45) {
+      $errors['general'] = 'Please wait a short moment before sending another message.';
+    }
+  }
+
+  if ($errors === []) {
+    $result = blog_send_contact_mail(
+      $values['name'],
+      $values['email'],
+      $values['subject'],
+      $values['message']
+    );
+    if ($result['ok']) {
+      $_SESSION['contact_last_sent_at'] = time();
+      redirect(blog_url('contact?sent=1'));
+    }
+    $errors['general'] = match ($result['error'] ?? '') {
+      'send_failed' => 'We could not send the email. If you use Mailtrap, check MAILTRAP_USER and MAILTRAP_PASSWORD in .env, then try again. You can also write directly to '
+        . blog_contact_to_email() . '.',
+      default => 'Something went wrong while sending. Please try again.',
+    };
   }
 }
 
@@ -60,4 +87,5 @@ view('contact.php', [
   'sent' => $sent,
   'errors' => $errors,
   'values' => $values,
+  'csrfToken' => auth_csrf_token(),
 ]);
