@@ -7,6 +7,13 @@ use Core\Database;
 
 $db = App::resolve(Database::class);
 
+$sessionUserId = (int) (auth_user()['id'] ?? 0);
+$canManageAllPosts = auth_can_manage_all_posts();
+$usersForModals = $canManageAllPosts
+  ? $db->query('SELECT `id`, `name` FROM `users` ORDER BY `name` ASC')->get()
+  : $db->query('SELECT `id`, `name` FROM `users` WHERE `id` = ? LIMIT 1', [$sessionUserId])->get();
+$categoriesForModals = $db->query('SELECT `id`, `name` FROM `categories` ORDER BY `sort_order` ASC, `name` ASC')->get();
+
 $publishedCount = (int) ($db->query(
   "SELECT COUNT(*) AS `n` FROM `posts` WHERE `status` = 'published'"
 )->find()['n'] ?? 0);
@@ -302,6 +309,10 @@ view('dashboard/index.view.php', [
   'reviewCommentPayloadJson' => $reviewCommentPayloadJson,
   'commentsUrl' => $commentsUrl,
   'postsUrl' => $postsUrl,
+  'users' => $usersForModals,
+  'categories' => $categoriesForModals,
+  'currentUserId' => $sessionUserId,
+  'canManageAllPosts' => $canManageAllPosts,
   'csrfToken' => auth_csrf_token(),
   'redirectQuery' => '',
   'chartDataJson' => $chartDataJson,

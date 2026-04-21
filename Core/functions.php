@@ -883,6 +883,128 @@ function auth_require_owner(): void
 }
 
 /**
+ * Normalized dashboard role for the signed-in user.
+ *
+ * @return 'owner'|'editor'|'author'|'viewer'
+ */
+function auth_user_role(): string
+{
+  auth_session_bootstrap();
+  $u = auth_user();
+  if ($u === null) {
+    return 'author';
+  }
+  $r = strtolower(trim((string) ($u['role'] ?? 'author')));
+  return in_array($r, ['owner', 'editor', 'author', 'viewer'], true) ? $r : 'author';
+}
+
+function auth_can_manage_users(): bool
+{
+  return auth_user_role() === 'owner';
+}
+
+function auth_can_edit_site_settings(): bool
+{
+  return auth_user_role() === 'owner';
+}
+
+/** Tags and categories (site taxonomy). */
+function auth_can_manage_taxonomy(): bool
+{
+  return in_array(auth_user_role(), ['owner', 'editor'], true);
+}
+
+/** Comment moderation dashboard. */
+function auth_can_moderate_comments(): bool
+{
+  return in_array(auth_user_role(), ['owner', 'editor'], true);
+}
+
+/** Create or edit any user's posts, assign author, see all posts in the list. */
+function auth_can_manage_all_posts(): bool
+{
+  return in_array(auth_user_role(), ['owner', 'editor'], true);
+}
+
+/** May use the Posts dashboard (own posts only for authors). Viewers cannot. */
+function auth_can_use_posts(): bool
+{
+  return in_array(auth_user_role(), ['owner', 'editor', 'author'], true);
+}
+
+function auth_require_can_use_posts(): void
+{
+  auth_require_user();
+  if (!auth_can_use_posts()) {
+    abort(403);
+  }
+}
+
+function auth_require_manage_taxonomy(): void
+{
+  auth_require_user();
+  if (!auth_can_manage_taxonomy()) {
+    abort(403);
+  }
+}
+
+function auth_require_moderate_comments(): void
+{
+  auth_require_user();
+  if (!auth_can_moderate_comments()) {
+    abort(403);
+  }
+}
+
+/**
+ * Sidebar navigation entries for the current role (users + write access differ by role).
+ *
+ * @return list<array{key: string, label: string, href: string, icon: string}>
+ */
+function auth_dashboard_nav_items(): array
+{
+  $navItemsAll = [
+    ['key' => 'overview', 'label' => 'Overview', 'href' => blog_url('dashboard'), 'icon' => 'home'],
+    ['key' => 'posts', 'label' => 'Posts', 'href' => blog_url('dashboard/posts'), 'icon' => 'doc'],
+    ['key' => 'tags', 'label' => 'Tags', 'href' => blog_url('dashboard/tags'), 'icon' => 'tag'],
+    ['key' => 'categories', 'label' => 'Categories', 'href' => blog_url('dashboard/categories'), 'icon' => 'folder'],
+    ['key' => 'comments', 'label' => 'Comments', 'href' => blog_url('dashboard/comments'), 'icon' => 'chat'],
+    ['key' => 'users', 'label' => 'Users', 'href' => blog_url('dashboard/users'), 'icon' => 'users'],
+    ['key' => 'settings', 'label' => 'Settings', 'href' => blog_url('dashboard/settings'), 'icon' => 'cog'],
+    ['key' => 'profile', 'label' => 'Profile', 'href' => blog_url('dashboard/profile'), 'icon' => 'user'],
+  ];
+
+  $role = auth_user_role();
+  if ($role === 'owner') {
+    return $navItemsAll;
+  }
+
+  $withoutUsers = array_values(array_filter(
+    $navItemsAll,
+    static fn (array $it): bool => $it['key'] !== 'users'
+  ));
+
+  if ($role === 'editor') {
+    return $withoutUsers;
+  }
+
+  if ($role === 'author') {
+    $allow = ['overview', 'posts', 'settings', 'profile'];
+    return array_values(array_filter(
+      $withoutUsers,
+      static fn (array $it): bool => in_array($it['key'], $allow, true)
+    ));
+  }
+
+  // viewer — read-only dashboard areas
+  $allow = ['overview', 'settings', 'profile'];
+  return array_values(array_filter(
+    $withoutUsers,
+    static fn (array $it): bool => in_array($it['key'], $allow, true)
+  ));
+}
+
+/**
  * @return int Number of users with role owner (any status).
  */
 function blog_users_count_owners(\Core\Database $db): int

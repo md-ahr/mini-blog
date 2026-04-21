@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/guard.php';
+auth_require_manage_taxonomy();
 
 use Core\App;
 use Core\Database;

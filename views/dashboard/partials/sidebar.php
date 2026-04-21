@@ -7,21 +7,7 @@ $navItem = 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium tra
 $navIdle = 'text-stone-600 hover:bg-stone-100 hover:text-stone-900';
 $navActive = 'bg-stone-900 text-amber-50 shadow-sm ring-1 ring-stone-900/10';
 
-$navItemsAll = [
-        ['key' => 'overview', 'label' => 'Overview', 'href' => blog_url('dashboard'), 'icon' => 'home'],
-        ['key' => 'posts', 'label' => 'Posts', 'href' => blog_url('dashboard/posts'), 'icon' => 'doc'],
-        ['key' => 'tags', 'label' => 'Tags', 'href' => blog_url('dashboard/tags'), 'icon' => 'tag'],
-        ['key' => 'categories', 'label' => 'Categories', 'href' => blog_url('dashboard/categories'), 'icon' => 'folder'],
-        ['key' => 'comments', 'label' => 'Comments', 'href' => blog_url('dashboard/comments'), 'icon' => 'chat'],
-        ['key' => 'users', 'label' => 'Users', 'href' => blog_url('dashboard/users'), 'icon' => 'users'],
-        ['key' => 'settings', 'label' => 'Settings', 'href' => blog_url('dashboard/settings'), 'icon' => 'cog'],
-        ['key' => 'profile', 'label' => 'Profile', 'href' => blog_url('dashboard/profile'), 'icon' => 'user'],
-];
-
-$sessionRole = auth_user();
-$items = ($sessionRole !== null && ($sessionRole['role'] ?? '') === 'owner')
-        ? $navItemsAll
-        : array_values(array_filter($navItemsAll, static fn(array $it): bool => $it['key'] !== 'users'));
+$items = auth_dashboard_nav_items();
 
 $icon = static function (string $name): string {
     return match ($name) {

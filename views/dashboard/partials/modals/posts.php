@@ -9,6 +9,7 @@ $csrfToken = $csrfToken ?? auth_csrf_token();
 $users = $users ?? [];
 $categories = $categories ?? [];
 $currentUserId = (int) ($currentUserId ?? 0);
+$canManageAllPosts = $canManageAllPosts ?? true;
 $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 ?>
 
@@ -39,7 +40,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                     <label class="<?= $lbl ?>" for="post-add-slug">Slug <span class="font-normal text-stone-500">(optional)</span></label>
                     <input id="post-add-slug" name="slug" type="text" maxlength="191" autocomplete="off" class="<?= $fld ?> font-mono text-xs" placeholder="url-friendly-slug"/>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-4 <?= $canManageAllPosts ? 'sm:grid-cols-2' : '' ?>">
                     <div>
                         <label class="<?= $lbl ?>" for="post-add-status">Status</label>
                         <select id="post-add-status" name="status" class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> mt-1.5">
@@ -48,6 +49,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                             <option value="scheduled">Scheduled</option>
                         </select>
                     </div>
+                    <?php if ($canManageAllPosts) : ?>
                     <div>
                         <label class="<?= $lbl ?>" for="post-add-author">Author</label>
                         <select id="post-add-author" name="user_id" required class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> mt-1.5">
@@ -57,6 +59,9 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php else : ?>
+                    <input type="hidden" name="user_id" value="<?= (int) $currentUserId ?>"/>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <label class="<?= $lbl ?>" for="post-add-category">Category</label>
@@ -154,7 +159,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                     <label class="<?= $lbl ?>" for="post-edit-slug">Slug</label>
                     <input id="post-edit-slug" name="slug" type="text" maxlength="191" autocomplete="off" class="<?= $fld ?> font-mono text-xs"/>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-4 <?= $canManageAllPosts ? 'sm:grid-cols-2' : '' ?>">
                     <div>
                         <label class="<?= $lbl ?>" for="post-edit-status">Status</label>
                         <select id="post-edit-status" name="status" class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> mt-1.5">
@@ -163,6 +168,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                             <option value="scheduled">Scheduled</option>
                         </select>
                     </div>
+                    <?php if ($canManageAllPosts) : ?>
                     <div>
                         <label class="<?= $lbl ?>" for="post-edit-author">Author</label>
                         <select id="post-edit-author" name="user_id" required class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> mt-1.5">
@@ -171,6 +177,9 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php else : ?>
+                    <input type="hidden" name="user_id" value="<?= (int) $currentUserId ?>"/>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <label class="<?= $lbl ?>" for="post-edit-category">Category</label>

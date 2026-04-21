@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/guard.php';
+auth_require_can_use_posts();
 
 use Core\App;
 use Core\Database;
@@ -8,6 +9,8 @@ use Core\Database;
 $db = App::resolve(Database::class);
 
 $postsUrl = blog_url('dashboard/posts');
+$sessionUserId = (int) (auth_user()['id'] ?? 0);
+$canManageAllPosts = auth_can_manage_all_posts();
 
 $flashSuccess = '';
 $flashError = '';
@@ -24,6 +27,7 @@ if (isset($_GET['error'])) {
     'csrf' => 'Invalid session. Please refresh and try again.',
     'validation' => 'Please check the form fields.',
     'not_found' => 'That post no longer exists.',
+    'forbidden' => 'You can only edit or remove your own posts.',
     'featured_upload' => 'Featured image must be a JPEG, PNG, WebP, or GIF under 2 MB.',
     default => 'Something went wrong.',
   };
@@ -68,7 +72,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $title = trim((string) ($_POST['title'] ?? ''));
     $slugIn = trim((string) ($_POST['slug'] ?? ''));
     $status = $normalizeStatus((string) ($_POST['status'] ?? 'draft'));
-    $userId = (int) ($_POST['user_id'] ?? 0);
+    $userId = $canManageAllPosts ? (int) ($_POST['user_id'] ?? 0) : $sessionUserId;
     $categoryRaw = $_POST['category_id'] ?? '';
     $categoryId = $categoryRaw === '' || $categoryRaw === null ? null : (int) $categoryRaw;
     $tags = trim((string) ($_POST['tags'] ?? ''));
@@ -161,7 +165,7 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $title = trim((string) ($_POST['title'] ?? ''));
     $slugIn = trim((string) ($_POST['slug'] ?? ''));
     $status = $normalizeStatus((string) ($_POST['status'] ?? 'draft'));
-    $userId = (int) ($_POST['user_id'] ?? 0);
+    $userId = $canManageAllPosts ? (int) ($_POST['user_id'] ?? 0) : $sessionUserId;
     $categoryRaw = $_POST['category_id'] ?? '';
     $categoryId = $categoryRaw === '' || $categoryRaw === null ? null : (int) $categoryRaw;
     $tags = trim((string) ($_POST['tags'] ?? ''));
@@ -176,9 +180,12 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if ($id < 1 || $title === '' || mb_strlen($title) > 500 || mb_strlen($excerpt) > 65535 || $userId < 1) {
       redirect($postsUrl . '?error=validation');
     }
-    $existing = $db->query('SELECT `id` FROM `posts` WHERE `id` = ? LIMIT 1', [$id])->find();
+    $existing = $db->query('SELECT `id`, `user_id` FROM `posts` WHERE `id` = ? LIMIT 1', [$id])->find();
     if (!$existing) {
       redirect($postsUrl . '?error=not_found');
+    }
+    if (!$canManageAllPosts && (int) ($existing['user_id'] ?? 0) !== $sessionUserId) {
+      redirect($postsUrl . '?error=forbidden');
     }
     $userOk = $db->query('SELECT `id` FROM `users` WHERE `id` = ? LIMIT 1', [$userId])->find();
     if (!$userOk) {
@@ -256,6 +263,13 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if ($id < 1) {
       redirect($postsUrl . '?error=validation');
     }
+    $row = $db->query('SELECT `user_id` FROM `posts` WHERE `id` = ? LIMIT 1', [$id])->find();
+    if (!$row) {
+      redirect($postsUrl . '?error=not_found');
+    }
+    if (!$canManageAllPosts && (int) ($row['user_id'] ?? 0) !== $sessionUserId) {
+      redirect($postsUrl . '?error=forbidden');
+    }
     $db->query('DELETE FROM `posts` WHERE `id` = ?', [$id]);
     redirect($postsUrl . '?saved=deleted');
   }
@@ -269,6 +283,9 @@ if ($statusFilter !== '' && !in_array($statusFilter, ['draft', 'published', 'sch
   $statusFilter = '';
 }
 $authorFilter = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+if (!$canManageAllPosts) {
+  $authorFilter = $sessionUserId;
+}
 $categoryFilter = isset($_GET['category_id']) ? trim((string) $_GET['category_id']) : '';
 
 $perPage = 15;
@@ -286,7 +303,10 @@ if ($statusFilter !== '') {
   $where[] = '`p`.`status` = ?';
   $params[] = $statusFilter;
 }
-if ($authorFilter > 0) {
+if (!$canManageAllPosts) {
+  $where[] = '`p`.`user_id` = ?';
+  $params[] = $sessionUserId;
+} elseif ($authorFilter > 0) {
   $where[] = '`p`.`user_id` = ?';
   $params[] = $authorFilter;
 }
@@ -325,15 +345,19 @@ $rows = $db->query(
   $params
 )->get();
 
-$users = $db->query('SELECT `id`, `name` FROM `users` ORDER BY `name` ASC')->get();
+$users = $canManageAllPosts
+  ? $db->query('SELECT `id`, `name` FROM `users` ORDER BY `name` ASC')->get()
+  : $db->query('SELECT `id`, `name` FROM `users` WHERE `id` = ? LIMIT 1', [$sessionUserId])->get();
 $categories = $db->query('SELECT `id`, `name` FROM `categories` ORDER BY `sort_order` ASC, `name` ASC')->get();
 
-$currentUserId = (int) (auth_user()['id'] ?? 0);
+$currentUserId = $sessionUserId;
 
 view('dashboard/posts.view.php', [
   'pageTitle' => 'Posts — Dashboard',
   'heading' => 'Posts',
-  'subheading' => 'Create and edit articles, categories, tags, and publishing status.',
+  'subheading' => $canManageAllPosts
+    ? 'Create and edit articles, categories, tags, and publishing status.'
+    : 'Create and edit posts attributed to your account.',
   'metaDescription' => '',
   'dashboardNav' => 'posts',
   'posts' => $rows,
@@ -351,6 +375,7 @@ view('dashboard/posts.view.php', [
   'totalPosts' => $totalPosts,
   'perPage' => $perPage,
   'currentUserId' => $currentUserId,
+  'canManageAllPosts' => $canManageAllPosts,
   'flashSuccess' => $flashSuccess,
   'flashError' => $flashError,
   'csrfToken' => auth_csrf_token(),

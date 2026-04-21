@@ -14,6 +14,7 @@
  * @var int $totalPosts
  * @var int $perPage
  * @var int $currentUserId
+ * @var bool $canManageAllPosts
  * @var string $flashSuccess
  * @var string $flashError
  * @var string $csrfToken
@@ -35,6 +36,7 @@ $perPage = (int) ($perPage ?? 15);
 $flashSuccess = $flashSuccess ?? '';
 $flashError = $flashError ?? '';
 $csrfToken = $csrfToken ?? auth_csrf_token();
+$canManageAllPosts = $canManageAllPosts ?? true;
 
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE;
 
@@ -106,6 +108,7 @@ $endItem = min($totalPosts, $page * $perPage);
                     <option value="published" <?= $filters['status'] === 'published' ? 'selected' : '' ?>>Published</option>
                     <option value="scheduled" <?= $filters['status'] === 'scheduled' ? 'selected' : '' ?>>Scheduled</option>
                 </select>
+                <?php if ($canManageAllPosts) : ?>
                 <label class="sr-only" for="post-author">Author</label>
                 <select id="post-author" name="user_id"
                         class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> sm:w-auto sm:min-w-[9.5rem]">
@@ -115,6 +118,7 @@ $endItem = min($totalPosts, $page * $perPage);
                         <option value="<?= $uid ?>" <?= $filters['user_id'] === $uid ? 'selected' : '' ?>><?= $h((string) ($u['name'] ?? '')) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <?php endif; ?>
                 <label class="sr-only" for="post-category-filter">Category</label>
                 <select id="post-category-filter" name="category_id"
                         class="<?= htmlspecialchars($dashboardSelect, ENT_QUOTES, 'UTF-8') ?> sm:w-auto sm:min-w-[11.5rem]">

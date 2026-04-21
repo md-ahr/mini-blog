@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/guard.php';
+auth_require_moderate_comments();
 
 use Core\App;
 use Core\Database;
